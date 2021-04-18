@@ -7,7 +7,7 @@ from importlib import import_module
 from enum import Enum
 from inspect import isclass
 from dearpygui import core, simple
-from dpgo import DPGObject
+from adheya import DPGObject
 
 class DirectionType(Enum):
 	Output = 1
@@ -39,7 +39,7 @@ class AttributeType(Enum):
 class Label(DPGObject):
 	def __init__(self, name, **kw):
 		super().__init__(name, **kw)
-		with simple.group(f'{self.guid}-group', parent=self.parent):
+		with simple.group(f'{self.guid}-group', parent=self.parent.guid):
 			core.add_text(f'{self.guid}-label', default_value=self.prettyname)
 			core.add_same_line()
 			core.add_text(f'{self.guid}-text', default_value=' ')
@@ -60,8 +60,8 @@ class Label(DPGObject):
 	def value(self, val):
 		core.set_value(f'{self.guid}-text', val)
 
-class Node(DPGObject):
-	_MAP = {
+class NodeAttribute(DPGObject):
+	_ATTRMAP = {
 		AttributeType.Bool: core.add_checkbox,
 		AttributeType.Int1: core.add_input_int,
 		AttributeType.Int2: core.add_input_int2,
@@ -75,73 +75,79 @@ class Node(DPGObject):
 		AttributeType.Label: Label
 	}
 
+	def __init__(self, parent, plug, attrType, attr, output=False, **kw):
+		super().__init__(plug, **kw)
+		kw['width'] = kw.get('width', 80)
+		with simple.node_attribute(plug, parent=parent, output=output):
+			# mapped command to create plug inside this attribute wrapper
+			kw['parent'] = self.guid
+			self._ATTRMAP[attrType](attr, **kw)
+
+	@property
+	def value(self, val):
+		...
+
+class Node(DPGObject):
 	def __init__(self, name, **kw):
 		# [Node_index]-attr.[index]
+
 		super().__init__(name, **kw)
 
-		self.__attr = {
-			"_i": {},
-			"_o": {}
-		}
+		self.__attrInput = {}
+		self.__attrOutput = {}
 
 		with simple.node(self.guid, **kw):
 			...
-		"""{
-			"<": {
-				"a": 1,
-				"b": 1,
-			},
-			">": {
-				"out": {
-					"_": 1,
-					"+": []
-				},
+		"""
+		in = {
+			"guid": {
+				type
+				links?
 			}
-		}"""
-
-	def __getattr__(self, attr):
-		return self.get(attr)
+		},
+		out =  {
+			"guid": {
+				# type of plug
+				"_": 1,
+				# links
+				"+": []
+			}
+		}
+		"""
 
 	def calculate(self):
 		"""Propigates the value based on depth first."""
-		path = set()
-		self.parent.dfs(self.guid, path)
-		for p in path:
-			p.calculate()
+		return True
 
-	def __attrHelper(self, index, name, attrType: AttributeType, **kw):
-		if name in self.__attr[index]:
+	def __attrHelper(self, name, attrType: AttributeType, output=False, **kw):
+		if name in self.__attrOutput or name in self.__attrInput:
 			raise Exception(f"Attribute {name} already exists")
 
+		attr = self.__attrOutput if output else self.__attrInput
+
 		# the outside wrapper and thing which DPG connects
-		attr = f"{self.guid}-{name}"
+		plugname = f"{self.guid}-{name}"
 
 		# the actual attribute where the value is held
-		raw = f"{attr}.attr"
+		attrname = f"{plugname}.attr"
 		kw['label'] = kw.get('label', name)
-		kw['width'] = kw.get('width', 80)
-		kw['parent'] = attr
 
-		with simple.node_attribute(attr, parent=self.guid, output=(index == '_o')):
-			# run the mapped command to create XYZ widget
-			self._MAP[attrType](raw, **kw)
-
-		self.__attr[index][raw] = {
-		}
+		na = NodeAttribute(self.guid, plugname, attrType, attrname, output=output, **kw)
+		attr[name] = na
 
 	def attrAddOut(self, name, attrType: AttributeType, **kw):
-		self.__attrHelper('_o', name, attrType, **kw)
+		self.__attrHelper(name, attrType, output=True, **kw)
 
 	def attrAddIn(self, name, attrType: AttributeType, **kw):
-		self.__attrHelper('_i', name, attrType, **kw)
+		self.__attrHelper(name, attrType, **kw)
 
 	@property
 	def outputs(self):
-		return self.__attr['_o'].copy()
+		return self.__attrOut.copy()
 
 	@property
 	def inputs(self):
-		return self.__attr['_i'].copy()
+		return self.__attrInput.copy()
 
 class NodeEditor(DPGObject):
 
@@ -156,14 +162,20 @@ class NodeEditor(DPGObject):
 		self.__links = {}
 		self.__root = os.path.dirname(os.path.realpath(__file__))
 
-		with simple.group("control", parent=self.parent.guid):
-			core.add_button("control.save", label="save", callback=self.__save, width=90, height=25)
-			core.add_same_line()
-			core.add_button("control.load", label="load", callback=self.__load, width=90, height=25)
+		with simple.group("paneleft", parent=self.parent.guid, width=self.parent.width):
+			with simple.group("control"):
+				core.add_button("control.save", label="save", callback=self.__save, width=90, height=25)
+				core.add_same_line()
+				core.add_button("control.load", label="load", callback=self.__load, width=90, height=25)
 
-		with simple.node_editor(self.guid, parent=self.parent.guid, link_callback=self.__link, delink_callback=self.__delink):
-			...
-		self.register("dpgo.nodeLib")
+			with simple.node_editor(self.guid, parent=self.parent.guid, link_callback=self.__link, delink_callback=self.__delink):
+				...
+
+		with simple.group("paneright", parent=self.parent.guid, width=0):
+			with simple.group("inspector"):
+				...
+
+		self.register("adheya.nodeLib")
 
 	def __nodelistRefresh(self):
 		if "nodelist" in core.get_all_items():
@@ -181,10 +193,11 @@ class NodeEditor(DPGObject):
 	def __nodeAdd(self, sender, obj):
 		core.close_popup("nodelist")
 		size = core.get_item_rect_min(sender)
+		# weak sauce hardcoded offset
 		x = max(0, int(size[0]) - 140)
 		y = max(0, int(size[1]) - 40)
 		label = getattr(obj, '_name', obj.__class__.__name__)
-		print(obj)
+		# print(label, obj)
 		node = obj(None, parent=self.guid, label=label, x_pos=x, y_pos=y)
 		self.__nodes[node.guid] = node
 
@@ -212,10 +225,6 @@ class NodeEditor(DPGObject):
 	@property
 	def registryNodes(self):
 		return [k for k in sorted(self.__nodeMap.keys()) if k != '_']
-
-	@property
-	def links(self):
-		return self.__links.copy()
 
 	@property
 	def nodes(self):
@@ -253,17 +262,17 @@ class NodeEditor(DPGObject):
 				print("Nodes cannot be cyclic")
 				return
 
-		# full attribute path
-		attr1 = core.get_item_children(attr1)[0]
-		attr2 = core.get_item_children(attr2)[0]
-
 		data = self.__links.get(left, [])
 		data.append(right)
 		self.__links[left] = data
 
 		node = right.split('-')[0]
-		node = self.__nodes[node]
-		node.calculate()
+		# needs to call the dag list of edges from this node...
+		visited = set()
+		self.dfs(left, visited)
+		for v in visited:
+			if not self.__nodes[v].calculate():
+				break
 
 	def dfs(self, v, visited):
 		"""Depth First Search."""

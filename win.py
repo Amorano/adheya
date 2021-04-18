@@ -3,30 +3,32 @@
 import re
 import json
 import os.path
+from enum import Enum
 from dearpygui import core, simple
-from dpgo import DPGObject, Singleton
+from adheya import DPGObject, Singleton
+
+class CallbackType(Enum):
+	Render = 1
+	Resize = 2
+	MouseDown = 3
+	MouseDrag = 4
+	MouseMove = 5
+	MouseDoubleClick = 6
+	MouseClick = 7
+	MouseRelease = 8
+	MouseWheel = 9
+	KeyDown = 10
+	KeyPress = 11
+	KeyRelease = 12
+	Accelerator = 13
 
 class WindowMain(DPGObject, metaclass=Singleton):
-	def __init__(self, **config):
+	def __init__(self, name=None, **config):
 
-		super().__init__(None, **config)
+		super().__init__(name, **config)
 
 		self.__cache = {}
-		self.__callbacks = {
-			'render': [],
-			'resize': [],
-			'mouse_down': [],
-			'mouse_drag': [],
-			'mouse_move': [],
-			'mouse_double_click': [],
-			'mouse_click': [],
-			'mouse_release': [],
-			'mouse_wheel': [],
-			'key_down': [],
-			'key_press': [],
-			'key_release': [],
-			'accelerator': []
-		}
+		self.__callbacks = {k: [] for k in CallbackType}
 
 		with simple.window(self.guid, **config):
 			...
@@ -34,25 +36,22 @@ class WindowMain(DPGObject, metaclass=Singleton):
 		core.set_exit_callback(self.__exit)
 		# close event as well -- can register for "close"/"exit"
 
-		core.set_render_callback(lambda x: self.__callback(x, 'render'))
-		core.set_resize_callback(lambda x: self.__callback(x, 'resize'))
-		core.set_mouse_down_callback(lambda x: self.__callback(x, 'mouse_down'))
-		core.set_mouse_drag_callback(lambda x: self.__callback(x, 'mouse_drag'), 10)
-		core.set_mouse_move_callback(lambda x: self.__callback(x, 'mouse_move'))
-		core.set_mouse_double_click_callback(lambda x: self.__callback(x, 'mouse_double_click'))
-		core.set_mouse_click_callback(lambda x: self.__callback(x, 'mouse_click'))
-		core.set_mouse_release_callback(lambda x: self.__callback(x, 'mouse_release'))
-		core.set_mouse_wheel_callback(lambda x: self.__callback(x, 'mouse_wheel'))
-		core.set_key_down_callback(lambda x: self.__callback(x, 'key_down'))
-		core.set_key_press_callback(lambda x: self.__callback(x, 'key_press'))
-		core.set_key_release_callback(lambda x: self.__callback(x, 'key_release'))
-		core.set_accelerator_callback(lambda x: self.__callback(x, 'accelerator'))
+		core.set_render_callback(lambda s, d: self.__callback(s, d, CallbackType.Render))
+		core.set_resize_callback(lambda s, d: self.__callback(s, d, CallbackType.Resize))
+		core.set_mouse_down_callback(lambda s, d: self.__callback(s, d, CallbackType.MouseDown))
+		core.set_mouse_drag_callback(lambda s, d: self.__callback(s, d, CallbackType.MouseDrag), 10)
+		core.set_mouse_move_callback(lambda s, d: self.__callback(s, d, CallbackType.MouseMove))
+		core.set_mouse_double_click_callback(lambda s, d: self.__callback(s, d, CallbackType.MouseDoubleClick))
+		core.set_mouse_click_callback(lambda s, d: self.__callback(s, d, CallbackType.MouseClick))
+		core.set_mouse_release_callback(lambda s, d: self.__callback(s, d, CallbackType.MouseRelease))
+		core.set_mouse_wheel_callback(lambda s, d: self.__callback(s, d, CallbackType.MouseWheel))
+		core.set_key_down_callback(lambda s, d: self.__callback(s, d, CallbackType.KeyDown))
+		core.set_key_press_callback(lambda s, d: self.__callback(s, d, CallbackType.KeyPress))
+		core.set_key_release_callback(lambda s, d: self.__callback(s, d, CallbackType.KeyRelease))
+		core.set_accelerator_callback(lambda s, d: self.__callback(s, d, CallbackType.Accelerator))
 
 		self.__theme = ThemeManager(theme="Jovian_Grey")
 		self.__cacheRefresh()
-
-	def open(self):
-		core.start_dearpygui(primary_window=self.guid)
 
 	@property
 	def cache(self):
@@ -72,6 +71,25 @@ class WindowMain(DPGObject, metaclass=Singleton):
 			data = self.__cache.get(typ, [])
 			data.append(item)
 			self.__cache[typ] = data
+
+	def __callback(self, sender, data, event):
+		if event is None:
+			print(event, sender, data)
+			return
+		for cmd in self.__callbacks[event]:
+			print(cmd, sender, data)
+
+	def __exit(self, sender, data):
+		core.stop_dearpygui()
+
+	def register(self, callback: CallbackType, destination):
+		what = self.__callbacks.get(callback, None)
+		if what is None:
+			raise Exception(f"no event {callback}")
+
+		if destination not in what:
+			what.append(destination)
+			self.__callbacks[callback] = what
 
 	def filter(self, typ=None, ignoreBuiltin=True, **kw):
 		"""Filter the DPG stack of controls for specific criteria.
@@ -119,20 +137,8 @@ class WindowMain(DPGObject, metaclass=Singleton):
 					ret.append(ctrl)
 		return ret
 
-	def register(self, callback, destination):
-		what = self.__callbacks.get(callback, None)
-		if what is None:
-			return
-		if destination not in what:
-			what.append(destination)
-			self.__callbacks[callback] = what
-
-	def __exit(self, sender, data):
-		core.stop_dearpygui()
-
-	def __callback(self, sender, data):
-		for cmd in self.__callbacks[data]:
-			print(cmd, sender, data)
+	def open(self):
+		core.start_dearpygui(primary_window=self.guid)
 
 class ThemeManager():
 	def __init__(self, theme=None, root=None):

@@ -1,10 +1,10 @@
 """."""
 
-from dpgo.win import WindowMain
-from dpgo.node import NodeEditor
+from adheya.win import WindowMain
+from adheya.node import NodeEditor
 from dearpygui import core
 
-class ExampleDagEditor(WindowMain):
+class AdheyaEditor(WindowMain):
 	def __init__(self):
 		core.set_main_window_size(1280, 840)
 		core.set_style_item_spacing(2, 1)
@@ -14,5 +14,5 @@ class ExampleDagEditor(WindowMain):
 		self.__nodeEditor = NodeEditor(parent=self)
 
 if __name__ == "__main__":
-	editor = ExampleDagEditor()
+	editor = AdheyaEditor()
 	core.start_dearpygui(primary_window=editor.guid)

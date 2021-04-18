@@ -2,6 +2,9 @@
 
 from dearpygui import core
 
+# everything made in this "wrapper" tracked via guid
+_REGISTRY = {}
+
 class Singleton(type):
 	"""It has one job to do."""
 	_instance = {}
@@ -12,16 +15,21 @@ class Singleton(type):
 
 class DPGObject(object):
 	def __init__(self, name, **kw):
-		self.__parent = kw.get('parent', None)
-
 		index = 0
 		name = guid = name or self.__class__.__name__
 		while name in core.get_all_items():
 			index += 1
 			name = f"{guid}_{index}"
 
+		global _REGISTRY
+		parent = kw.get('parent', None)
+		if isinstance(parent, str):
+			parent = _REGISTRY[parent]
+
+		self.__parent = parent
 		self.__guid = name
 		self.__prettyname = kw.get('label', name)
+		_REGISTRY[name] = self
 
 	@property
 	def parent(self):
@@ -34,3 +42,6 @@ class DPGObject(object):
 	@property
 	def prettyname(self):
 		return self.__prettyname
+
+	def __getattr__(self, attr):
+		return core.get_item_configuration(self.guid)[attr]
