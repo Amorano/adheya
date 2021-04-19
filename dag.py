@@ -1,8 +1,8 @@
 """."""
 
+from dearpygui import core
 from adheya.win import WindowMain
 from adheya.nodeEditor import NodeEditor
-from dearpygui import core
 
 class AdheyaEditor(WindowMain):
 	def __init__(self):

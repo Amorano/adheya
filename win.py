@@ -1,25 +1,9 @@
 """."""
 
 import re
-from enum import Enum
 from dearpygui import core, simple
-from adheya import DPGObject, Singleton
+from adheya import DPGObject, Singleton, CallbackType
 from adheya.theme import ThemeManager
-
-class CallbackType(Enum):
-	Render = 1
-	Resize = 2
-	MouseDown = 3
-	MouseDrag = 4
-	MouseMove = 5
-	MouseDoubleClick = 6
-	MouseClick = 7
-	MouseRelease = 8
-	MouseWheel = 9
-	KeyDown = 10
-	KeyPress = 11
-	KeyRelease = 12
-	Accelerator = 13
 
 class WindowMain(DPGObject, metaclass=Singleton):
 	def __init__(self, name=None, **config):
@@ -72,9 +56,8 @@ class WindowMain(DPGObject, metaclass=Singleton):
 			self.__cache[typ] = data
 
 	def __callback(self, sender, data, event):
-		print(event, sender, data)
 		for cmd in self.__callbacks[event]:
-			print(cmd, sender, data)
+			cmd(sender, data)
 
 	def __exit(self, sender, data):
 		core.stop_dearpygui()

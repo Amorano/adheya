@@ -84,8 +84,24 @@ class NodeAttribute(DPGObject):
 
 class Node(DPGObject):
 	def __init__(self, name, **kw):
-		# [Node_index]-attr.[index]
+		"""Everything.
 
+		[Node_index]-attr.[index]
+
+		INPUTS:
+			"guid": {
+				type
+				links?
+			}
+
+		OUTPUTS:
+			"guid": {
+				# type of plug
+				"_": 1,
+				# links
+				"+": []
+			}
+		"""
 		super().__init__(name, **kw)
 
 		self.__attrInput = {}
@@ -93,22 +109,6 @@ class Node(DPGObject):
 
 		with simple.node(self.guid, **kw):
 			...
-		"""
-		in = {
-			"guid": {
-				type
-				links?
-			}
-		},
-		out =  {
-			"guid": {
-				# type of plug
-				"_": 1,
-				# links
-				"+": []
-			}
-		}
-		"""
 
 	def calculate(self):
 		"""Propigates the value based on depth first."""
