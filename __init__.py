@@ -4,9 +4,6 @@ from __future__ import annotations
 from enum import Enum
 from dearpygui import core
 
-# everything made in this "wrapper" tracked via guid
-_REGISTRY = {}
-
 class CallbackType(Enum):
 	Render = 1
 	Resize = 2
@@ -31,22 +28,27 @@ class Singleton(type):
 		return cls._instance[cls]
 
 class DPGObject(object):
-	def __init__(self, name, **kw):
+	# everything made in this "wrapper" tracked via guid
+	_REGISTRY = {}
+	def __init__(self, guid, **kw):
 		index = 0
-		name = guid = name or self.__class__.__name__
-		while name in core.get_all_items():
+		name = guid = guid or self.__class__.__name__
+		while guid in core.get_all_items():
 			index += 1
-			name = f"{guid}_{index}"
+			guid = f"{name}_{index}"
 
-		global _REGISTRY
+		# horrible mechanism to map DPG objects with no native python side wrapper
 		parent = kw.get('parent', None)
 		if isinstance(parent, str):
-			parent = _REGISTRY[parent]
+			parent = self._REGISTRY.get(parent, parent)
+			if isinstance(parent, str):
+				parent = DPGObject(parent)
+				self._REGISTRY[parent.guid] = parent
 
 		self.__parent = parent
-		self.__guid = name
-		self.__prettyname = kw.get('label', name)
-		_REGISTRY[name] = self
+		self.__label = kw.get('label', guid)
+		self.__guid = guid
+		self._REGISTRY[name] = self
 
 	@property
 	def parent(self) -> DPGObject:
@@ -57,8 +59,8 @@ class DPGObject(object):
 		return self.__guid
 
 	@property
-	def prettyname(self) -> str:
-		return self.__prettyname
+	def label(self) -> str:
+		return self.__label
 
 	def __getattr__(self, attr):
 		return core.get_item_configuration(self.guid)[attr]

@@ -7,8 +7,7 @@ from importlib import import_module
 from inspect import isclass
 from dearpygui import core, simple
 from adheya import DPGObject, CallbackType
-from adheya.node import Node
-
+from adheya.node import Node, Label
 class NodeEditor(DPGObject):
 
 	_CYCLECHECK = True
@@ -24,7 +23,6 @@ class NodeEditor(DPGObject):
 
 		parent = self.parent.guid
 		paneleft = f'{self.guid}-paneleft'
-		paneright = f'{self.guid}-paneright'
 
 		with simple.group(paneleft, parent=parent, width=100):
 			with simple.group(f"{paneleft}-control"):
@@ -37,37 +35,59 @@ class NodeEditor(DPGObject):
 
 		core.add_same_line(parent=parent)
 
-		with simple.group(paneright, parent=parent, width=500):
+		paneright = f'{self.guid}-paneright'
+		with simple.window(paneright, no_title_bar=True, no_focus_on_appearing=True, no_collapse=True, no_close=True, autosize=False):
 			with simple.group(f"{paneright}-inspector"):
-				core.add_button(f"{paneright}-control.save", label="save", callback=self.__save, width=90, height=25)
-				core.add_same_line()
-				core.add_button(f"{paneright}-control.load", label="load", callback=self.__load, width=90, height=25)
+				...
+
+		# placeholder for all context menu popups since we cant figure out what things we are over?
+		nodelist = f"{self.guid}-nodelist"
+		with simple.popup(self.guid, nodelist, parent=self.guid):
+			...
 
 		self.register("adheya.nodeLib")
-		self.parent.register(CallbackType.MouseClick, self.__mouseClick)
+		# self.parent.register(CallbackType.MouseClick, self.__mouseClick)
+		self.parent.register(CallbackType.Resize, self.__resize)
+		# self.parent.register(CallbackType.MouseDrag, self.__drag)
+		self.parent.register(CallbackType.MouseRelease, self.__resize)
 
-	def __mouseClick(self, sender, data):
-		# if you there is a way to do combined individual attrs and grouped?
+	def __resize(self, sender, data):
+		paneright = f'{self.guid}-paneright'
+		w, h = core.get_main_window_size()
+		width = core.get_item_configuration(paneright)["width"]
+		width = min(max(width, 0), int(w * .25))
+		core.configure_item(paneright, height=h - 25, width=width, y_pos=-1, x_pos=w - width + 25)
 		nodes = core.get_selected_nodes(self.guid)
-		width = 400 if len(nodes) > 0 else 0
-		core.configure_item(f'{self.guid}-paneright', width=width)
-		for n in nodes:
-			for attr in self.__nodes[n].inputs:
-				print(attr)
+		if len(nodes) == 0:
+			simple.hide_item(paneright)
+			return
+		simple.show_item(paneright)
+
+		if "inspector" in core.get_all_items():
+			core.delete_item("inspector")
+
+		with simple.group("inspector", parent=paneright):
+			for n in nodes:
+				inputs = self.__nodes[n].inputs
+				inspector = f"spect-{n}"
+				with simple.group(inspector):
+					for guid, attr in inputs.items():
+						val = str(core.get_value(guid))
+						Label(f"{inspector}-{attr.label}", parent=inspector, default_value=val)
 
 	def __nodelistRefresh(self):
 		nodelist = f"{self.guid}-nodelist"
-		if nodelist in core.get_all_items():
-			core.delete_item(nodelist)
+		children = core.get_item_children(nodelist)
+		for item in children or []:
+			core.delete_item(item)
 
-		with simple.popup(self.guid, nodelist, parent="main"):
-			for k in self.registryNodes:
-				core.add_text(k, default_value=k)
-				for obj in self.registry(k):
-					name = getattr(obj, '_name', obj.__name__)
-					core.add_button(obj.__name__,
-						label=name, width=60, height=15,
-						callback=self.__nodeAdd, callback_data=obj)
+		for k in self.registryNodes:
+			core.add_text(k, default_value=k, parent=nodelist)
+			for obj in self.registry(k):
+				name = getattr(obj, '_name', obj.__name__)
+				core.add_button(obj.__name__, parent=nodelist,
+					label=name, width=60, height=15,
+					callback=self.__nodeAdd, callback_data=obj)
 
 	def __nodeAdd(self, sender, obj):
 		core.close_popup(f"{self.guid}-nodelist")

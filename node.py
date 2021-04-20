@@ -34,17 +34,18 @@ class AttributeType(Enum):
 class Label(DPGObject):
 	def __init__(self, name, **kw):
 		super().__init__(name, **kw)
+		dfv = kw.get('default_value', ' ')
 		with simple.group(f'{self.guid}-group', parent=self.parent.guid):
-			core.add_text(f'{self.guid}-label', default_value=self.prettyname)
+			core.add_text(f'{self.guid}-label', default_value=self.label)
 			core.add_same_line()
-			core.add_text(f'{self.guid}-text', default_value=' ')
+			core.add_text(f'{self.guid}-text', default_value=dfv)
 
 	@property
-	def label(self):
+	def text(self):
 		return core.get_value(f'{self.guid}-label')
 
-	@label.setter
-	def label(self, val):
+	@text.setter
+	def text(self, val):
 		core.set_value(f'{self.guid}-label', val)
 
 	@property
@@ -73,14 +74,26 @@ class NodeAttribute(DPGObject):
 	def __init__(self, parent, plug, attrType, attr, output=False, **kw):
 		super().__init__(plug, **kw)
 		kw['width'] = kw.get('width', 80)
+		self.__type = attrType
+		self.__attr = attr
+		self.__output = output
+
 		with simple.node_attribute(plug, parent=parent, output=output):
 			# mapped command to create plug inside this attribute wrapper
 			kw['parent'] = self.guid
 			self._ATTRMAP[attrType](attr, **kw)
 
 	@property
-	def value(self, val):
-		...
+	def typ(self):
+		return self.__type
+
+	@property
+	def attr(self):
+		return self.__attr
+
+	@property
+	def output(self):
+		return self.__output
 
 class Node(DPGObject):
 	def __init__(self, name, **kw):
@@ -90,12 +103,16 @@ class Node(DPGObject):
 
 		INPUTS:
 			"guid": {
-				type
-				links?
+				# label
+				'*': 'out',
+				# type of plug
+				"_": 1
 			}
 
 		OUTPUTS:
 			"guid": {
+				# label
+				'*': 'out',
 				# type of plug
 				"_": 1,
 				# links
@@ -128,7 +145,7 @@ class Node(DPGObject):
 		kw['label'] = kw.get('label', name)
 
 		na = NodeAttribute(self.guid, plugname, attrType, attrname, output=output, **kw)
-		attr[name] = na
+		attr[attrname] = na
 
 	def attrAddOut(self, name, attrType: AttributeType, **kw):
 		self.__attrHelper(name, attrType, output=True, **kw)

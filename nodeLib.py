@@ -1,7 +1,7 @@
 """."""
 
-from .node import Node, AttributeType
 from dearpygui import core
+from .node import Node, AttributeType
 
 class NodeMath(Node):
 	def __init__(self, name, **kw):
