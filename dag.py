@@ -6,7 +6,7 @@ from adheya.nodeEditor import NodeEditor
 
 class AdheyaEditor(WindowMain):
 	def __init__(self):
-		core.set_main_window_size(1280, 840)
+		core.set_main_window_size(960, 540)
 		core.set_style_item_spacing(2, 1)
 		core.set_style_frame_padding(2, 1)
 		core.set_style_window_padding(2, 0)

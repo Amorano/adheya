@@ -30,25 +30,27 @@ class Singleton(type):
 class DPGObject(object):
 	# everything made in this "wrapper" tracked via guid
 	_REGISTRY = {}
-	def __init__(self, guid, **kw):
-		index = 0
-		name = guid = guid or self.__class__.__name__
-		while guid in core.get_all_items():
-			index += 1
-			guid = f"{name}_{index}"
-
+	def __init__(self, guid, unique=True, **kw):
 		# horrible mechanism to map DPG objects with no native python side wrapper
 		parent = kw.get('parent', None)
 		if isinstance(parent, str):
 			parent = self._REGISTRY.get(parent, parent)
 			if isinstance(parent, str):
-				parent = DPGObject(parent)
-				self._REGISTRY[parent.guid] = parent
+				parent = self._REGISTRY[parent] = DPGObject(parent, unique=False)
+
+		if unique:
+			index = 0
+			name = guid = guid or self.__class__.__name__
+			# could be a non-wrapped item
+			items = core.get_all_items()
+			while guid in items:
+				index += 1
+				guid = f"{name}_{index}"
 
 		self.__parent = parent
 		self.__label = kw.get('label', guid)
 		self.__guid = guid
-		self._REGISTRY[name] = self
+		self._REGISTRY[guid] = self
 
 	@property
 	def parent(self) -> DPGObject:

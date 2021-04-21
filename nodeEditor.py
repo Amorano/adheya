@@ -36,9 +36,17 @@ class NodeEditor(DPGObject):
 		core.add_same_line(parent=parent)
 
 		paneright = f'{self.guid}-paneright'
-		with simple.window(paneright, no_title_bar=True, no_focus_on_appearing=True, no_collapse=True, no_close=True, autosize=False):
-			with simple.group(f"{paneright}-inspector"):
+		with simple.window(paneright,
+			no_close=True,
+			autosize=False,
+			no_collapse=True,
+			no_title_bar=True,
+			no_focus_on_appearing=True,
+			):
 				...
+
+		with simple.group(f"{paneright}-inspector", parent=paneright):
+			...
 
 		# placeholder for all context menu popups since we cant figure out what things we are over?
 		nodelist = f"{self.guid}-nodelist"
@@ -68,12 +76,18 @@ class NodeEditor(DPGObject):
 
 		with simple.group("inspector", parent=paneright):
 			for n in nodes:
-				inputs = self.__nodes[n].inputs
+				n = self.__nodes[n]
+				inputs = n.inputs
 				inspector = f"spect-{n}"
 				with simple.group(inspector):
+					core.add_text(n.label)
 					for guid, attr in inputs.items():
+						label = f"{inspector}-{attr.label}"
 						val = str(core.get_value(guid))
-						Label(f"{inspector}-{attr.label}", parent=inspector, default_value=val)
+						Label(label, label=attr.label, parent=inspector, default_value=val)
+
+				for _ in range(10):
+					core.add_spacing()
 
 	def __nodelistRefresh(self):
 		nodelist = f"{self.guid}-nodelist"
@@ -96,7 +110,6 @@ class NodeEditor(DPGObject):
 		x = max(0, int(size[0]) - 140)
 		y = max(0, int(size[1]) - 40)
 		label = getattr(obj, '_name', obj.__class__.__name__)
-		# print(label, obj)
 		node = obj(None, parent=self.guid, label=label, x_pos=x, y_pos=y)
 		self.__nodes[node.guid] = node
 

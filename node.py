@@ -35,26 +35,26 @@ class Label(DPGObject):
 	def __init__(self, name, **kw):
 		super().__init__(name, **kw)
 		dfv = kw.get('default_value', ' ')
-		with simple.group(f'{self.guid}-group', parent=self.parent.guid):
-			core.add_text(f'{self.guid}-label', default_value=self.label)
-			core.add_same_line()
-			core.add_text(f'{self.guid}-text', default_value=dfv)
+		group = f'{self.guid}-group'
+		with simple.group(group, parent=self.parent.guid, horizontal=True):
+			core.add_text(f'{group}.label', default_value=self.label)
+			core.add_text(f'{group}.text', default_value=dfv)
 
 	@property
 	def text(self):
-		return core.get_value(f'{self.guid}-label')
+		return core.get_value(f'{self.guid}-group.label')
 
 	@text.setter
 	def text(self, val):
-		core.set_value(f'{self.guid}-label', val)
+		core.set_value(f'{self.guid}-group.label', val)
 
 	@property
 	def value(self):
-		return core.get_value(f'{self.guid}-text')
+		return core.get_value(f'{self.guid}-group.text')
 
 	@value.setter
 	def value(self, val):
-		core.set_value(f'{self.guid}-text', val)
+		core.set_value(f'{self.guid}-group.text', val)
 
 class NodeAttribute(DPGObject):
 	_ATTRMAP = {
