@@ -5,9 +5,9 @@ from dearpygui import core, simple
 from adheya import DPGObject
 
 class DirectionType(Enum):
+	Input = 0
 	Output = 1
 	Static = 2
-	Input = 3
 
 	@staticmethod
 	def filter(node):
@@ -28,8 +28,13 @@ class AttributeType(Enum):
 	Float2 = 7
 	Float3 = 8
 	Float4 = 9
-	String = 10
-	Label = 11
+	Color3 = 10
+	Color4 = 11
+	Pick3 = 12
+	Pick4 = 13
+	String = 14
+	Button = 15
+	Label = 16
 
 class Label(DPGObject):
 	def __init__(self, name, **kw):
@@ -67,20 +72,27 @@ class NodeAttribute(DPGObject):
 		AttributeType.Float2: core.add_input_float2,
 		AttributeType.Float3: core.add_input_float3,
 		AttributeType.Float4: core.add_input_float4,
+		AttributeType.Color3: core.add_color_edit3,
+		AttributeType.Color4: core.add_color_edit4,
+		AttributeType.Pick3: core.add_color_picker3,
+		AttributeType.Pick4: core.add_color_picker4,
 		AttributeType.String: core.add_input_text,
-		AttributeType.Label: Label
+		AttributeType.Button: core.add_button,
+		AttributeType.Label: Label,
 	}
 
-	def __init__(self, parent, plug, attrType, attr, output=False, **kw):
+	def __init__(self, parent, plug, attrType, attr, plugType, **kw):
 		super().__init__(plug, **kw)
-		kw['width'] = kw.get('width', 80)
 		self.__type = attrType
 		self.__attr = attr
-		self.__output = output
+		self.__plugType = plugType
+		output = plugType == DirectionType.Output
+		static = plugType == DirectionType.Static
 
-		with simple.node_attribute(plug, parent=parent, output=output):
+		with simple.node_attribute(plug, parent=parent, output=output, static=static):
 			# mapped command to create plug inside this attribute wrapper
 			kw['parent'] = self.guid
+			kw['width'] = kw.get('width', 80)
 			self._ATTRMAP[attrType](attr, **kw)
 
 	@property
@@ -123,6 +135,7 @@ class Node(DPGObject):
 
 		self.__attrInput = {}
 		self.__attrOutput = {}
+		self.__attrStatic = {}
 
 		with simple.node(self.guid, **kw):
 			...
@@ -131,11 +144,11 @@ class Node(DPGObject):
 		"""Propigates the value based on depth first."""
 		return True
 
-	def __attrHelper(self, name, attrType: AttributeType, output=False, **kw):
-		if name in self.__attrOutput or name in self.__attrInput:
+	def attrAdd(self, name, attrType: AttributeType, plugType: DirectionType=DirectionType.Input, **kw):
+		if name in self.__attrOutput or name in self.__attrInput or name in self.__attrStatic:
 			raise Exception(f"Attribute {name} already exists")
 
-		attr = self.__attrOutput if output else self.__attrInput
+		attr = [self.__attrInput, self.__attrOutput, self.__attrStatic][plugType.value]
 
 		# the outside wrapper and thing which DPG connects
 		plugname = f"{self.guid}-{name}"
@@ -143,15 +156,10 @@ class Node(DPGObject):
 		# the actual attribute where the value is held
 		attrname = f"{plugname}.attr"
 		kw['label'] = kw.get('label', name)
-
-		na = NodeAttribute(self.guid, plugname, attrType, attrname, output=output, **kw)
+		kw.pop('static', None)
+		kw.pop('output', None)
+		na = NodeAttribute(self.guid, plugname, attrType, attrname, plugType, **kw)
 		attr[attrname] = na
-
-	def attrAddOut(self, name, attrType: AttributeType, **kw):
-		self.__attrHelper(name, attrType, output=True, **kw)
-
-	def attrAddIn(self, name, attrType: AttributeType, **kw):
-		self.__attrHelper(name, attrType, **kw)
 
 	@property
 	def outputs(self):

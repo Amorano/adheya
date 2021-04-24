@@ -42,8 +42,8 @@ class NodeEditor(DPGObject):
 			no_collapse=True,
 			no_title_bar=True,
 			no_focus_on_appearing=True,
-			):
-				...
+		):
+			...
 
 		with simple.group(f"{paneright}-inspector", parent=paneright):
 			...
