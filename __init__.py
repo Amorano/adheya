@@ -27,7 +27,7 @@ class Singleton(type):
 			cls._instance[cls] = super(Singleton, cls).__call__(*arg, **kw)
 		return cls._instance[cls]
 
-class DPGObject(object):
+class DPGObject():
 	# everything made in this "wrapper" tracked via guid
 	_REGISTRY = {}
 	def __init__(self, guid, unique=True, **kw):
@@ -65,4 +65,13 @@ class DPGObject(object):
 		return self.__label
 
 	def __getattr__(self, attr):
-		return core.get_item_configuration(self.guid)[attr]
+		try:
+			return super().__getattr__(attr)
+		except AttributeError as _:
+			return core.get_item_configuration(self.__guid)[attr]
+
+	def __setattr__(self, attr, value):
+		if attr.startswith('_'):
+			super().__setattr__(attr, value)
+		else:
+			core.configure_item(self.__guid, **{attr: value})

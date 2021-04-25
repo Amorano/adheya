@@ -8,11 +8,13 @@ from inspect import isclass
 from dearpygui import core, simple
 from adheya import DPGObject, CallbackType
 from adheya.node import Node, Label
+
 class NodeEditor(DPGObject):
 
 	_CYCLECHECK = True
 
-	def __init__(self, **kw):
+	def __init__(self, parent, **kw):
+		kw['parent'] = parent
 		super().__init__(None, **kw)
 
 		# command factory to make node *

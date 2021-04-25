@@ -3,6 +3,7 @@
 from dearpygui import core
 from adheya.win import WindowMain
 from adheya.nodeEditor import NodeEditor
+from adheya.menu import MenuEntry
 
 class AdheyaEditor(WindowMain):
 	def __init__(self):
@@ -11,8 +12,15 @@ class AdheyaEditor(WindowMain):
 		core.set_style_frame_padding(2, 1)
 		core.set_style_window_padding(2, 0)
 		super().__init__()
-		self.__nodeEditor = NodeEditor(parent=self)
+		self.__nodeEditor = NodeEditor(self)
+		m = self.menubar.add('behave')
+		m.add('belive')
+		p = m.add('Kool', MenuEntry.Menu)
+		p.add('item')
+
+	def something(self):
+		...
 
 if __name__ == "__main__":
 	editor = AdheyaEditor()
-	core.start_dearpygui(primary_window=editor.guid)
+	editor.open()

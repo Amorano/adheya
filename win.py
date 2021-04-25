@@ -3,18 +3,26 @@
 import re
 from dearpygui import core, simple
 from adheya import DPGObject, Singleton, CallbackType
+from adheya.menu import MenuBar
 from adheya.theme import ThemeManager
 
-class WindowMain(DPGObject, metaclass=Singleton):
+class Window(DPGObject):
 	def __init__(self, name=None, **config):
+		super().__init__(name, **config)
+		with simple.window(self.guid, **config):
+			self.__menubar = MenuBar(None, parent=self) if config['menubar'] else None
 
+	@property
+	def menubar(self):
+		return self.__menubar
+
+class WindowMain(Window, metaclass=Singleton):
+	def __init__(self, name=None, **config):
+		config['menubar'] = config.get('menubar', True)
 		super().__init__(name, **config)
 
 		self.__cache = {}
 		self.__callbacks = {k: [] for k in CallbackType}
-
-		with simple.window(self.guid, **config):
-			...
 
 		core.set_exit_callback(self.__exit)
 		# close event as well -- can register for "close"/"exit"
