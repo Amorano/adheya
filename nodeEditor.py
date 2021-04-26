@@ -23,19 +23,14 @@ class NodeEditor(DPGObject):
 		self.__links = {}
 		self.__root = os.path.dirname(os.path.realpath(__file__))
 
-		parent = self.parent.guid
-		paneleft = f'{self.guid}-paneleft'
+		m = self.menubar.add('file')
+		m.add('load', callback=self.__load)
+		m.add('save', callback=self.__save)
 
-		with simple.group(paneleft, parent=parent, width=100):
-			with simple.group(f"{paneleft}-control"):
-				core.add_button(f"{paneleft}-control.save", label="save", callback=self.__save, width=90, height=25)
-				core.add_same_line()
-				core.add_button(f"{paneleft}-control.load", label="load", callback=self.__load, width=90, height=25)
+		with simple.node_editor(self.guid, parent=self.parent.guid, link_callback=self.__link, delink_callback=self.__delink):
+			...
 
-			with simple.node_editor(self.guid, link_callback=self.__link, delink_callback=self.__delink):
-				...
-
-		core.add_same_line(parent=parent)
+		core.add_same_line(parent=self.parent.guid)
 
 		paneright = f'{self.guid}-paneright'
 		with simple.window(paneright,
@@ -45,10 +40,8 @@ class NodeEditor(DPGObject):
 			no_title_bar=True,
 			no_focus_on_appearing=True,
 		):
-			...
-
-		with simple.group(f"{paneright}-inspector", parent=paneright):
-			...
+			with simple.group(f"{paneright}-inspector", parent=paneright):
+				...
 
 		# placeholder for all context menu popups since we cant figure out what things we are over?
 		nodelist = f"{self.guid}-nodelist"
@@ -67,7 +60,7 @@ class NodeEditor(DPGObject):
 		width = core.get_item_configuration(paneright)["width"]
 		width = min(max(width, 0), int(w * .25))
 		core.configure_item(paneright, height=h - 25, width=width, y_pos=-1, x_pos=w - width + 25)
-		nodes = core.get_selected_nodes(self.guid)
+		nodes = core.get_selected_nodes(self.guid) or []
 		if len(nodes) == 0:
 			simple.hide_item(paneright)
 			return

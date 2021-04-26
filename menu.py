@@ -19,12 +19,13 @@ class MenuBar(DPGObject):
 		core.end()
 
 	def add(self, name, **kw):
-		if self.__menu.get(name, None):
-			print('menu already exists')
-			return
-		kw['parent'] = self.guid
-		m = Menu(name, **kw)
-		self.__menu[name] = m
+		m = self.__menu.get(name, None)
+		if m is None:
+			kw['parent'] = self.guid
+			m = Menu(name, **kw)
+			self.__menu[name] = m
+		else:
+			print(f"{name} already exists")
 		return m
 
 class Menu(DPGObject):
@@ -37,12 +38,16 @@ class Menu(DPGObject):
 			...
 
 	def add(self, name, entryType: MenuEntry=MenuEntry.Item, **kw):
-		kw.pop('parent', None)
-		guid = f'{self.guid}-{name}'
-		kw['label'] = kw.get('label', name)
-		cmd = [Menu, MenuItem][entryType.value]
-		m = cmd(guid, self.guid, **kw)
-		self.__struct[name] = m
+		m = self.__struct.get(name, None)
+		if m is None:
+			kw.pop('parent', None)
+			guid = f'{self.guid}-{name}'
+			kw['label'] = kw.get('label', name)
+			cmd = [Menu, MenuItem][entryType.value]
+			m = cmd(guid, self.guid, **kw)
+			self.__struct[name] = m
+		else:
+			print(f"{name} already exists")
 		return m
 
 class MenuItem(DPGObject):

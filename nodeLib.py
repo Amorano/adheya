@@ -1,7 +1,7 @@
 """."""
 
 from dearpygui import core
-from .node import DirectionType, Node, AttributeType
+from adheya.node import DirectionType, Node, AttributeType
 
 class NodeMath(Node):
 	def __init__(self, name, **kw):
@@ -40,8 +40,7 @@ class NodeColor(Node):
 		self.attrAdd('color', AttributeType.Pick4, default_value=(128, 128, 128, 255))
 
 	def calculate(self):
-		val = core.get_value(self._a) + core.get_value(self._b)
-		core.set_value(self._out, val)
+		...
 
 class NodeImage(Node):
 	_name = "Image"
@@ -49,8 +48,8 @@ class NodeImage(Node):
 
 	def __init__(self, name, **kw):
 		super().__init__(name, **kw)
-		self.attrAdd('a', AttributeType.Float1, default_value=0.)
+		self.__file = self.attrAdd('file', AttributeType.FileImage, DirectionType.Output, extensions='.png, .jpg')
 
 	def calculate(self):
-		val = core.get_value(self._a) + core.get_value(self._b)
-		core.set_value(self._out, val)
+		if self.__file is None:
+			return
