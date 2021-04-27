@@ -15,8 +15,8 @@ class NodeMath(Node):
 		print(sender, data)
 
 class NodeAdd(NodeMath):
-	_name = "Addition"
 	_category = "Math"
+	_name = "Addition"
 
 	def calculate(self):
 		# specific to this node first....
@@ -30,3 +30,15 @@ class NodeAdd(NodeMath):
 
 		# now tell the manager to propigate
 		super().calculate()
+
+class NodeSubtract(NodeMath):
+	_category = "Math"
+	_name = "Subtraction"
+
+class NodeMultiply(NodeMath):
+	_category = "Math"
+	_name = "Multiply"
+
+class NodeDivide(NodeMath):
+	_category = "Math"
+	_name = "Division"

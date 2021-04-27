@@ -72,7 +72,7 @@ class DPGObject(object):
 		if isinstance(parent, str):
 			parent = self._REGISTRY.get(parent, parent)
 			if isinstance(parent, str):
-				parent = self._REGISTRY[parent] = DPGObject(parent) #, unique=False)
+				parent = self._REGISTRY[parent] = DPGObject(parent)
 
 		# for uniqueness across all widgets; just because.
 		index = 0

@@ -7,8 +7,9 @@ from importlib import import_module
 from inspect import isclass
 from dearpygui import core, simple
 from adheya import DPGObject, CallbackType
-from adheya.node import Node
 from adheya.general import Label
+from adheya.node import Node
+from adheya.win import WindowMain
 
 class NodeEditor(DPGObject):
 
@@ -33,16 +34,13 @@ class NodeEditor(DPGObject):
 
 		core.add_same_line(parent=self.parent.guid)
 
-		paneright = f'{self.guid}-paneright'
-		with simple.window(paneright,
-				no_close=True,
-				autosize=False,
-				no_collapse=True,
-				no_title_bar=True,
-				no_focus_on_appearing=True,
-			):
-				with simple.group(f"{paneright}-inspector", parent=paneright):
-					...
+		self.__paneright = f'{self.guid}-paneright'
+		kw['no_close'] = kw['no_collapse'] = kw['no_title_bar'] = kw['no_focus_on_appearing'] = True
+		kw['autosize'] = False
+		kw.pop('parent', None)
+		with simple.window(self.__paneright, **kw):
+			with simple.group(f"{self.__paneright}-inspector", parent=self.__paneright):
+				...
 
 		# placeholder for all context menu popups since we cant figure out what things we are over?
 		self.__idNodeList = f"{self.guid}-nodelist"
@@ -59,26 +57,25 @@ class NodeEditor(DPGObject):
 		self.register(CallbackType.MouseRelease, self.__resize)
 
 	def __resize(self, sender, data):
-		paneright = f'{self.guid}-paneright'
 		w, h = core.get_main_window_size()
-		width = core.get_item_configuration(paneright)["width"]
+		width = core.get_item_configuration(self.__paneright)["width"]
 		width = min(max(width, 0), int(w * .25))
-		core.configure_item(paneright, height=h - 25, width=width, y_pos=-1, x_pos=w - width + 25)
+		core.configure_item(self.__paneright, height=h - 25, width=width, y_pos=-1, x_pos=w - width + 25)
 		nodes = core.get_selected_nodes(self.guid) or []
 		if len(nodes) == 0:
-			simple.hide_item(paneright)
+			simple.hide_item(self.__paneright)
 			return
-		simple.show_item(paneright)
+		simple.show_item(self.__paneright)
 
 		if "inspector" in core.get_all_items():
 			core.delete_item("inspector")
 
-		with simple.group("inspector", parent=paneright):
+		with simple.group("inspector", parent=self.__paneright):
 			for n in nodes:
 				n = self.__nodes[n]
 				inputs = n.inputs
 				inspector = f"spect-{n}"
-				with simple.group(inspector):
+				with simple.group(inspector, parent="inspector"):
 					core.add_text(n.label)
 					for guid, attr in inputs.items():
 						label = f"{inspector}-{attr.label}"
@@ -216,6 +213,7 @@ class NodeEditor(DPGObject):
 		for obj in module.__dict__.values():
 			if not isclass(obj) or not issubclass(obj, Node):
 				continue
+
 			cat = getattr(obj, '_category', '_')
 			data = self.__nodeMap.get(cat, [])
 			data.append(obj)
@@ -225,3 +223,16 @@ class NodeEditor(DPGObject):
 
 	def registry(self, index):
 		return self.__nodeMap[index]
+
+class AdheyaEditor(WindowMain):
+	def __init__(self):
+		core.set_main_window_size(560, 740)
+		core.set_style_item_spacing(2, 1)
+		core.set_style_frame_padding(2, 1)
+		core.set_style_window_padding(2, 0)
+		super().__init__()
+		self.__nodeEditor = NodeEditor(self)
+
+if __name__ == "__main__":
+	editor = AdheyaEditor()
+	editor.open()
