@@ -34,22 +34,23 @@ class NodeEditor(DPGObject):
 
 		paneright = f'{self.guid}-paneright'
 		with simple.window(paneright,
-			no_close=True,
-			autosize=False,
-			no_collapse=True,
-			no_title_bar=True,
-			no_focus_on_appearing=True,
-		):
-			with simple.group(f"{paneright}-inspector", parent=paneright):
-				...
+				no_close=True,
+				autosize=False,
+				no_collapse=True,
+				no_title_bar=True,
+				no_focus_on_appearing=True,
+			):
+				with simple.group(f"{paneright}-inspector", parent=paneright):
+					...
 
 		# placeholder for all context menu popups since we cant figure out what things we are over?
 		self.__idNodeList = f"{self.guid}-nodelist"
 		with simple.popup(self.guid, self.__idNodeList, parent=self.guid):
 			...
 
-		self.libImport("adheya.nodeLib.nodeImage")
+		self.libImport("adheya.nodeLib.nodeCore")
 		self.libImport("adheya.nodeLib.nodeMath")
+		self.libImport("adheya.nodeLib.nodeImage")
 
 		# self.register(CallbackType.MouseClick, self.__mouseClick)
 		self.register(CallbackType.Resize, self.__resize)
@@ -91,7 +92,7 @@ class NodeEditor(DPGObject):
 		for item in children or []:
 			core.delete_item(item)
 
-		for k in self.registryNodes:
+		for k in sorted(self.registryNodes):
 			core.add_text(k, default_value=k, parent=self.__idNodeList)
 			for obj in self.__nodeMap[k]:
 				name = getattr(obj, '_name', obj.__name__)
@@ -108,35 +109,6 @@ class NodeEditor(DPGObject):
 		label = getattr(obj, '_name', obj.__class__.__name__)
 		node = obj(None, parent=self.guid, label=label, x_pos=x, y_pos=y)
 		self.__nodes[node.guid] = node
-
-	def registry(self, index):
-		return self.__nodeMap[index]
-
-	def libImport(self, module):
-		"""Parse module for Node* classes."""
-		if isinstance(module, str):
-			try:
-				module = sys.modules[module]
-			except KeyError as _:
-				module = import_module(module)
-
-		for obj in module.__dict__.values():
-			if not isclass(obj) or not issubclass(obj, Node):
-				continue
-			cat = getattr(obj, '_category', '_')
-			data = self.__nodeMap.get(cat, [])
-			data.append(obj)
-			self.__nodeMap[cat] = sorted(data, key=lambda o: getattr(o, '_name', o.__name__))
-
-		self.__nodelistRefresh()
-
-	@property
-	def registryNodes(self):
-		return [k for k in sorted(self.__nodeMap.keys()) if k != '_']
-
-	@property
-	def nodes(self):
-		return self.__nodes.copy()
 
 	def __delink(self, sender, data):
 		# nodes attributes are in left->right order
@@ -182,6 +154,33 @@ class NodeEditor(DPGObject):
 			if not self.__nodes[v].calculate():
 				break
 
+	def __save(self):
+		fp = f'{self.__root}/nodes.json'
+		with open(fp, 'w') as fp:
+			for node in self.__nodes:
+				print(node)
+				print('-' * 30)
+				for link in self.__links.get(node, []):
+					print(link)
+				print('=' * 80)
+
+	def __load(self):
+		fp = f'{self.__root}/nodes.json'
+		with open(fp, 'r') as fp:
+			data = json.load(fp)
+		print(data)
+
+	@property
+	def registryNodes(self):
+		return [k for k in sorted(self.__nodeMap.keys()) if k != '_']
+
+	@property
+	def nodes(self):
+		return self.__nodes.copy()
+
+	# ============================================
+	# >> NODE GRAPH
+	# ============================================
 	def dfs(self, v, visited):
 		"""Depth First Search."""
 		# Mark current node visited
@@ -202,18 +201,26 @@ class NodeEditor(DPGObject):
 				self.dfs(vertex, visited)
 		return visited
 
-	def __save(self):
-		fp = f'{self.__root}/nodes.json'
-		with open(fp, 'w') as fp:
-			for node in self.__nodes:
-				print(node)
-				print('-' * 30)
-				for link in self.__links.get(node, []):
-					print(link)
-				print('=' * 80)
+	# ============================================
+	# >> NODE DATABASE
+	# ============================================
+	def libImport(self, module):
+		"""Parse module for Node* classes."""
+		if isinstance(module, str):
+			try:
+				module = sys.modules[module]
+			except KeyError as _:
+				module = import_module(module)
 
-	def __load(self):
-		fp = f'{self.__root}/nodes.json'
-		with open(fp, 'r') as fp:
-			data = json.load(fp)
-		print(data)
+		for obj in module.__dict__.values():
+			if not isclass(obj) or not issubclass(obj, Node):
+				continue
+			cat = getattr(obj, '_category', '_')
+			data = self.__nodeMap.get(cat, [])
+			data.append(obj)
+			self.__nodeMap[cat] = sorted(data, key=lambda o: getattr(o, '_name', o.__name__))
+
+		self.__nodelistRefresh()
+
+	def registry(self, index):
+		return self.__nodeMap[index]

@@ -20,24 +20,24 @@ class PlugType(Enum):
 		return PlugType.Input
 
 class AttributeType(Enum):
-	Bool = 1
-	Int1 = 2
-	Int2 = 3
-	Int3 = 4
-	Int4 = 5
-	Float1 = 6
-	Float2 = 7
-	Float3 = 8
-	Float4 = 9
-	Color3 = 10
-	Color4 = 11
-	Pick3 = 12
-	Pick4 = 13
-	String = 14
-	Button = 15
-	Label = 16
-	FileHandle = 17
-	FileImage = 18
+	Bool = 0
+	Int1 = 1
+	Int2 = 2
+	Int3 = 3
+	Int4 = 4
+	Float1 = 5
+	Float2 = 6
+	Float3 = 7
+	Float4 = 8
+	Color3 = 9
+	Color4 = 10
+	Pick3 = 11
+	Pick4 = 12
+	String = 13
+	Button = 14
+	Label = 15
+	FileHandle = 16
+	FileImage = 17
 
 class Label(DPGObject):
 	def __init__(self, guid, **kw):
@@ -114,7 +114,7 @@ class FileImage(FileHandle):
 		self.__idCanvas = f'{self.guid}-canvas'
 		core.add_drawing(self.__idCanvas, width=self.__max[0], height=self.__max[1], parent=self.parent.guid)
 		self.__data = []
-		self.callback('zoom', self.__zoom)
+		self.register('zoom', self.__zoom)
 		zoom = self.parent.zoomLevel
 		self.__zoom(zoom)
 
