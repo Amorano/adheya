@@ -5,7 +5,7 @@ from enum import Enum
 from dearpygui import core, simple
 from adheya import DPGObject
 
-class DirectionType(Enum):
+class PlugType(Enum):
 	Input = 0
 	Output = 1
 	Static = 2
@@ -14,10 +14,10 @@ class DirectionType(Enum):
 	def filter(node):
 		config = core.get_item_configuration(node)
 		if config.get('output', None):
-			return DirectionType.Output
+			return PlugType.Output
 		if config.get('static', None):
-			return DirectionType.Static
-		return DirectionType.Input
+			return PlugType.Static
+		return PlugType.Input
 
 class AttributeType(Enum):
 	Bool = 1
@@ -109,12 +109,14 @@ class FileHandle(DPGObject):
 class FileImage(FileHandle):
 	def __init__(self, guid, **kw):
 		self.__min = kw.pop('pmin', [0, 0])
-		self.__max = kw.pop('pmax', [64, 64])
+		self.__max = kw.pop('pmax', [0, 0])
 		super().__init__(guid, **kw)
 		self.__idCanvas = f'{self.guid}-canvas'
 		core.add_drawing(self.__idCanvas, width=self.__max[0], height=self.__max[1], parent=self.parent.guid)
 		self.__data = []
 		self.callback('zoom', self.__zoom)
+		zoom = self.parent.zoomLevel
+		self.__zoom(zoom)
 
 	def __zoom(self, level):
 		size = pow(2, 5 + level)
@@ -150,12 +152,14 @@ class NodeAttribute(DPGObject):
 	}
 
 	def __init__(self, parent, plug, plugType, attr, attrType, **kw):
+		kw['parent'] = parent
 		super().__init__(plug, **kw)
 		self.__type = attrType
 		self.__attr = attr
 		self.__plugType = plugType
-		output = plugType == DirectionType.Output
-		static = plugType == DirectionType.Static
+
+		output = plugType == PlugType.Output
+		static = plugType == PlugType.Static
 
 		with simple.node_attribute(plug, parent=parent, output=output, static=static):
 			# mapped command to create plug inside this attribute wrapper
@@ -209,28 +213,10 @@ class Node(DPGObject):
 		self.__attrOutput = {}
 		self.__attrStatic = {}
 
-		self.__zoomLevel = 0
-		self.__zoomExtent = (0, 3)
-
-		idGroup = f"{self.guid}-group"
-		self.__idZoom = f"{idGroup}-zoom"
 		with simple.node(self.guid, **kw):
-			width = simple.get_item_width(self.guid)
-			with simple.node_attribute(f"{self.guid}-attr", static=True):
-				with simple.group(idGroup, horizontal=True, width=width):
-					core.add_button(f"{idGroup}-zin", label='-', callback=self.__zoom, callback_data=-1, width=20)
-					core.add_text(self.__idZoom, default_value=str(self.__zoomLevel))
-					core.add_button(f"{idGroup}-zout", label='+', callback=self.__zoom, callback_data=1, width=20)
+			...
 
-	def __zoom(self, sender, data):
-		old = self.__zoomLevel
-		self.__zoomLevel += int(data)
-		self.__zoomLevel = min(self.__zoomExtent[1], max(self.__zoomExtent[0], self.__zoomLevel))
-		if self.__zoomLevel != old:
-			core.set_value(self.__idZoom, str(self.__zoomLevel))
-			self.__event('zoom', self.__zoomLevel)
-
-	def __event(self, event, *arg, **kw):
+	def event(self, event, *arg, **kw):
 		"""Cast the event to all the attributes."""
 		for callback in (self.__attrInput, self.__attrStatic, self.__attrOutput):
 			for cb in callback.values():
@@ -240,7 +226,7 @@ class Node(DPGObject):
 		"""Propigates the value based on depth first."""
 		return True
 
-	def attrAdd(self, guid, attrType: AttributeType, plugType: DirectionType=DirectionType.Input, **kw) -> NodeAttribute:
+	def attrAdd(self, guid, attrType: AttributeType, plugType: PlugType=PlugType.Input, **kw) -> NodeAttribute:
 		if guid in self.__attrOutput or guid in self.__attrInput or guid in self.__attrStatic:
 			raise Exception(f"Attribute {guid} already exists")
 
@@ -265,6 +251,28 @@ class Node(DPGObject):
 	@property
 	def inputs(self):
 		return self.__attrInput.copy()
+
+class NodeZoom(Node):
+	def __init__(self, guid, **kw):
+		super().__init__(guid, **kw)
+
+		self.__zoomLevel = 1
+		self.__zoomExtent = (0, 3)
+
+		idGroup = f"{self.parent.guid}-group"
+		self.__idZoom = f"{idGroup}-zoom"
+		with simple.group(idGroup, horizontal=True, parent=self.guid):
+			core.add_button(f"{idGroup}-zin", label='-', callback=self.__zoom, callback_data=-1, width=20)
+			core.add_text(self.__idZoom, default_value=str(self.__zoomLevel))
+			core.add_button(f"{idGroup}-zout", label='+', callback=self.__zoom, callback_data=1, width=20)
+
+	def __zoom(self, sender, data):
+		old = self.__zoomLevel
+		self.__zoomLevel += int(data)
+		self.__zoomLevel = min(self.__zoomExtent[1], max(self.__zoomExtent[0], self.__zoomLevel))
+		if self.__zoomLevel != old:
+			core.set_value(self.__idZoom, str(self.__zoomLevel))
+			self.event('zoom', self.__zoomLevel)
 
 	@property
 	def zoomLevel(self):

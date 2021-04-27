@@ -27,7 +27,7 @@ class Singleton(type):
 			cls._instance[cls] = super(Singleton, cls).__call__(*arg, **kw)
 		return cls._instance[cls]
 
-class DPGObject():
+class DPGObject(object):
 	# everything made in this "wrapper" tracked via guid
 	_REGISTRY = {}
 	def __init__(self, guid, **kw):
@@ -53,6 +53,18 @@ class DPGObject():
 		self.__guid = guid
 		self._REGISTRY[guid] = self
 
+	def __getattr__(self, attr):
+		try:
+			return getattr(self.parent, attr)
+		except AttributeError as _:
+			return core.get_item_configuration(self.__guid)[attr]
+
+	def __setattr__(self, attr, value):
+		if attr.startswith('_'):
+			super().__setattr__(attr, value)
+		else:
+			core.configure_item(self.__guid, **{attr: value})
+
 	@property
 	def parent(self) -> DPGObject:
 		return self.__parent
@@ -75,18 +87,3 @@ class DPGObject():
 		callbacks = self.__callback.get(event, [])
 		for x in callbacks:
 			x(*arg, **kw)
-
-	def __getattr__(self, attr):
-		try:
-			return super().__getattr__(attr)
-		except AttributeError as _:
-			try:
-				return getattr(self.parent, attr)
-			except AttributeError as _:
-				return core.get_item_configuration(self.__guid)[attr]
-
-	def __setattr__(self, attr, value):
-		if attr.startswith('_'):
-			super().__setattr__(attr, value)
-		else:
-			core.configure_item(self.__guid, **{attr: value})

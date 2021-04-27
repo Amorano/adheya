@@ -44,15 +44,17 @@ class NodeEditor(DPGObject):
 				...
 
 		# placeholder for all context menu popups since we cant figure out what things we are over?
-		nodelist = f"{self.guid}-nodelist"
-		with simple.popup(self.guid, nodelist, parent=self.guid):
+		self.__idNodeList = f"{self.guid}-nodelist"
+		with simple.popup(self.guid, self.__idNodeList, parent=self.guid):
 			...
 
-		self.register("adheya.nodeLib")
-		# self.parent.register(CallbackType.MouseClick, self.__mouseClick)
-		self.parent.register(CallbackType.Resize, self.__resize)
-		# self.parent.register(CallbackType.MouseDrag, self.__drag)
-		self.parent.register(CallbackType.MouseRelease, self.__resize)
+		self.libImport("adheya.nodeLib.nodeImage")
+		self.libImport("adheya.nodeLib.nodeMath")
+
+		# self.register(CallbackType.MouseClick, self.__mouseClick)
+		self.register(CallbackType.Resize, self.__resize)
+		# self.register(CallbackType.MouseDrag, self.__drag)
+		self.register(CallbackType.MouseRelease, self.__resize)
 
 	def __resize(self, sender, data):
 		paneright = f'{self.guid}-paneright'
@@ -85,21 +87,20 @@ class NodeEditor(DPGObject):
 					core.add_spacing()
 
 	def __nodelistRefresh(self):
-		nodelist = f"{self.guid}-nodelist"
-		children = core.get_item_children(nodelist)
+		children = core.get_item_children(self.__idNodeList)
 		for item in children or []:
 			core.delete_item(item)
 
 		for k in self.registryNodes:
-			core.add_text(k, default_value=k, parent=nodelist)
-			for obj in self.registry(k):
+			core.add_text(k, default_value=k, parent=self.__idNodeList)
+			for obj in self.__nodeMap[k]:
 				name = getattr(obj, '_name', obj.__name__)
-				core.add_button(obj.__name__, parent=nodelist,
+				core.add_button(obj.__name__, parent=self.__idNodeList,
 					label=name, width=60, height=15,
 					callback=self.__nodeAdd, callback_data=obj)
 
 	def __nodeAdd(self, sender, obj):
-		core.close_popup(f"{self.guid}-nodelist")
+		core.close_popup(self.__idNodeList)
 		size = core.get_item_rect_min(sender)
 		# weak sauce hardcoded offset
 		x = max(0, int(size[0]) - 140)
@@ -111,7 +112,7 @@ class NodeEditor(DPGObject):
 	def registry(self, index):
 		return self.__nodeMap[index]
 
-	def register(self, module):
+	def libImport(self, module):
 		"""Parse module for Node* classes."""
 		if isinstance(module, str):
 			try:
@@ -125,7 +126,7 @@ class NodeEditor(DPGObject):
 			cat = getattr(obj, '_category', '_')
 			data = self.__nodeMap.get(cat, [])
 			data.append(obj)
-			self.__nodeMap[cat] = data
+			self.__nodeMap[cat] = sorted(data, key=lambda o: getattr(o, '_name', o.__name__))
 
 		self.__nodelistRefresh()
 
