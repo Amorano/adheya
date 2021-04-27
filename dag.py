@@ -12,7 +12,6 @@ class AdheyaEditor(WindowMain):
 		core.set_style_window_padding(2, 0)
 		super().__init__()
 		self.__nodeEditor = NodeEditor(self)
-		print(self.hierarchy)
 
 if __name__ == "__main__":
 	editor = AdheyaEditor()

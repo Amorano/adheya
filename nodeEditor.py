@@ -7,7 +7,8 @@ from importlib import import_module
 from inspect import isclass
 from dearpygui import core, simple
 from adheya import DPGObject, CallbackType
-from adheya.node import Node, Label
+from adheya.node import Node
+from adheya.general import Label
 
 class NodeEditor(DPGObject):
 
