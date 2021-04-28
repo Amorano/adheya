@@ -72,7 +72,7 @@ class FileHandle(DPGObject):
 		...
 
 class FileImage(FileHandle):
-	def __init__(self, guid, **kw):
+	def __init__(self, guid, zoomLevel=0, **kw):
 		self.__min = kw.pop('pmin', [0, 0])
 		self.__max = kw.pop('pmax', [0, 0])
 		super().__init__(guid, **kw)
@@ -80,8 +80,7 @@ class FileImage(FileHandle):
 		core.add_drawing(self.__idCanvas, width=self.__max[0], height=self.__max[1], parent=self.parent.guid)
 		self.__data = []
 		self.register('zoom', self.__zoom)
-		zoom = self.parent.zoomLevel
-		self.__zoom(zoom)
+		self.__zoom(zoomLevel)
 
 	def __zoom(self, level):
 		size = pow(2, 5 + level)

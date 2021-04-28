@@ -7,10 +7,10 @@ from adheya.theme import ThemeManager
 from adheya import DPGObject, Singleton
 
 class Window(DPGObject):
-	def __init__(self, name=None, **config):
-		super().__init__(name, **config)
+	def __init__(self, guid=None, **config):
+		super().__init__(guid, **config)
 		with simple.window(self.guid, **config):
-			self.__menubar = MenuBar(None, parent=self) if config['menubar'] else None
+			self.__menubar = MenuBar(None, parent=self.guid) if config['menubar'] else None
 
 	@property
 	def menubar(self):

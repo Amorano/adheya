@@ -9,26 +9,25 @@ class ValueType(Enum):
 	Float = 1
 
 class InputType(Enum):
-	Input = 0
+	Direct = 0
 	Drag = 1
 	Slider = 2
 
 class Numeric(DPGObject):
-	def __init__(self, guid, valueType: ValueType=ValueType.Integer, inputType: InputType=InputType.Input, **kw):
+	def __init__(self, guid, valueType: ValueType=ValueType.Integer, inputType: InputType=InputType.Direct, **kw):
 		super().__init__(guid, **kw)
-
 		kw['parent'] = self.parent.guid
 
 		self.__inputType = inputType
 		self.__valueType = valueType
-		self.__value = kw.pop('default_value', 0)
+		dfv = kw['default_value'] = kw.get('default_value', 0)
 
 		intype = ['input', 'drag', 'slider'][inputType.value]
 		vtype = ['int', 'float'][valueType.value]
-		size = len(self.__value)
-		attr = f"add_{intype}_{vtype}{size if size > 1 else ''}"
+		size = len(dfv) if not isinstance(dfv, (int, float)) else ''
+		attr = f"add_{intype}_{vtype}{size}"
 		self.__cmd = getattr(core, attr)
-		self.__cmd(self.guid, default_vaule=self.__value, **kw)
+		self.__cmd(self.guid, **kw)
 
 	@property
 	def inputType(self):
@@ -37,14 +36,3 @@ class Numeric(DPGObject):
 	@property
 	def valueType(self):
 		return self.__valueType
-
-	@property
-	def value(self):
-		return self.__value
-
-	@value.setter
-	def value(self, value):
-		if value == self.__value:
-			return
-		core.set_value(self.guid, value)
-		self.__value = value

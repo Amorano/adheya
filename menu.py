@@ -9,11 +9,9 @@ class MenuEntry(Enum):
 	Item = 1
 
 class MenuBar(DPGObject):
-	def __init__(self, name, parent, **kw):
-		kw['parent'] = parent
+	def __init__(self, name, **kw):
 		super().__init__(name, **kw)
 		self.__menu = {}
-
 		kw['parent'] = self.parent.guid
 		core.add_menu_bar(self.guid, **kw)
 		core.end()

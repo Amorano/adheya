@@ -35,7 +35,7 @@ class Callbacks(metaclass=Singleton):
 		core.set_render_callback(lambda s, d: self.__callback(s, d, CallbackType.Render))
 		core.set_resize_callback(lambda s, d: self.__callback(s, d, CallbackType.Resize))
 		core.set_mouse_down_callback(lambda s, d: self.__callback(s, d, CallbackType.MouseDown))
-		core.set_mouse_drag_callback(lambda s, d: self.__callback(s, d, CallbackType.MouseDrag), 10)
+		core.set_mouse_drag_callback(lambda s, d: self.__callback(s, d, CallbackType.MouseDrag), .1)
 		core.set_mouse_move_callback(lambda s, d: self.__callback(s, d, CallbackType.MouseMove))
 		core.set_mouse_double_click_callback(lambda s, d: self.__callback(s, d, CallbackType.MouseDoubleClick))
 		core.set_mouse_click_callback(lambda s, d: self.__callback(s, d, CallbackType.MouseClick))
@@ -66,30 +66,37 @@ class DPGObject(object):
 	_REGISTRY = {}
 	_CALLBACK = Callbacks()
 
-	def __init__(self, guid, **kw):
-		# horrible mechanism to map DPG objects with no native python side wrapper
-		parent = kw.get('parent', None)
-		if isinstance(parent, str):
-			parent = self._REGISTRY.get(parent, parent)
-			if isinstance(parent, str):
-				parent = self._REGISTRY[parent] = DPGObject(parent)
-
+	def __init__(self, guid, forced=False, **kw):
 		# for uniqueness across all widgets; just because.
-		index = 0
-		name = guid = guid or self.__class__.__name__
-		# could be a non-wrapped item
-		items = core.get_all_items()
-		while guid in items:
-			index += 1
-			guid = f"{name}_{index}"
-
-		self.__parent = parent
+		self.__guid = guid = guid or self.__class__.__name__
 		self.__label = kw.get('label', guid)
-		self.__guid = guid
-		self._REGISTRY[guid] = self
+
+		# could be an existing named item
+		index = 0
+		items = core.get_all_items()
+		# make unique if not forced
+		if not forced:
+			while self.__guid in self._REGISTRY or self.__guid in items:
+				self.__guid = f"{guid}_{index}"
+				index += 1
+
+		# horrible mechanism to map DPG objects with no native python side wrapper
+		p = kw.get('parent', None)
+		if isinstance(p, str):
+			if p not in self._REGISTRY:
+				if p in items:
+					p = DPGObject(p, forced=True)
+			else:
+				p = self._REGISTRY[p]
+
+		self.__parent = p
+		self._REGISTRY[self.__guid] = self
 
 	def __repr__(self):
-		return self.__label
+		return self.__guid
+
+	def __str__(self):
+		return self.__guid
 
 	def __getattr__(self, attr):
 		try:
@@ -105,6 +112,9 @@ class DPGObject(object):
 
 	@property
 	def parent(self) -> DPGObject:
+		if self.__parent is None:
+			parent = core.get_item_parent(self.__guid)
+			self.__parent = self.__registerDPGParent(parent) if parent else parent
 		return self.__parent
 
 	@property
@@ -129,22 +139,56 @@ class DPGObject(object):
 		children = self.children()
 		return f'{self}\n' + scan(children)
 
+	@property
+	def value(self):
+		return core.get_value(self.__guid)
+
+	@value.setter
+	def value(self, value):
+		old = core.get_value(self.__guid)
+		if value == old:
+			return
+		core.set_value(self.__guid, value)
+
+	@property
+	def size(self):
+		return core.get_item_rect_size(self.__guid)
+
+	def configure(self, **kw):
+		core.configure_item(self.__guid, **kw)
+
 	def register(self, callback: Union[CallbackType, str], destination):
 		self._CALLBACK.register(callback, destination)
 
 	def event(self, event, *arg, **kw):
 		self._CALLBACK.event(self, event, *arg, **kw)
 
+	@classmethod
+	def delete(cls, guid):
+		# item = cls._REGISTRY.get(guid, None)
+		# if item:
+			# use the wrapper to remove the kids...
+			# print('child')
+			#for c in item.children(recurse=False):
+			#	cls.delete(c.guid)
+
+		if guid in core.get_all_items():
+			for child in core.get_item_children(guid) or []:
+				cls.delete(child)
+			core.delete_item(guid)
+		x = cls._REGISTRY.pop(guid, None)
+
 	def children(self, recurse=True, flat=False):
 		ret = [v for v in self._REGISTRY.values() if v.parent == self]
-		if recurse:
-			for k in ret:
-				if isinstance(k, list):
-					continue
-				children = k.children(recurse=recurse)
-				if len(children) == 0:
-					continue
-				if not flat:
-					children = [children]
-				ret.extend(children)
+		if not recurse:
+			return ret
+		for k in ret:
+			if isinstance(k, list):
+				continue
+			children = k.children(recurse=recurse)
+			if len(children) == 0:
+				continue
+			if not flat:
+				children = [children]
+			ret.extend(children)
 		return ret

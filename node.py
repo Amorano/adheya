@@ -2,8 +2,9 @@
 
 from enum import Enum
 from dearpygui import core, simple
-from adheya import DPGObject
+from adheya import DPGObject, CallbackType
 from adheya.general import Label, FileHandle, FileImage
+from adheya.numeric import Numeric, InputType
 
 class PlugType(Enum):
 	Input = 0
@@ -150,6 +151,7 @@ class Node(DPGObject):
 		kw['label'] = kw.get('label', guid)
 		kw.pop('static', None)
 		kw.pop('output', None)
+		kw.pop('parent', None)
 		na = NodeAttribute(self.guid, plugname, plugType, attrname, attrType, **kw)
 		attr[attrname] = na
 		return na
@@ -162,28 +164,33 @@ class Node(DPGObject):
 	def inputs(self):
 		return self.__attrInput.copy()
 
+	@property
+	def dump(self):
+		for i in self.__attrInput:
+			print(i)
+
 class NodeZoom(Node):
 	def __init__(self, guid, **kw):
 		super().__init__(guid, **kw)
+		self.__idGroup = f"{self.guid}-group"
+		with simple.group(self.__idGroup, parent=self.guid):
+			...
 
-		self.__zoomLevel = 1
-		self.__zoomExtent = (0, 3)
+		self.__slider = Numeric(f"{self.guid}-zoom", label='', parent=self.__idGroup, width=1,
+			inputType=InputType.Slider, default_value=1, min_value=0, max_value=3, clamped=True,
+			callback=lambda s, d: self.__zoom())
 
-		idGroup = f"{self.parent.guid}-group"
-		self.__idZoom = f"{idGroup}-zoom"
-		with simple.group(idGroup, horizontal=True, parent=self.guid):
-			core.add_button(f"{idGroup}-zin", label='-', callback=self.__zoom, callback_data=-1, width=20)
-			core.add_text(self.__idZoom, default_value=str(self.__zoomLevel))
-			core.add_button(f"{idGroup}-zout", label='+', callback=self.__zoom, callback_data=1, width=20)
+		self.register(CallbackType.Resize, self.__resize)
+		self.__resize(self, None)
 
-	def __zoom(self, sender, data):
-		old = self.__zoomLevel
-		self.__zoomLevel += int(data)
-		self.__zoomLevel = min(self.__zoomExtent[1], max(self.__zoomExtent[0], self.__zoomLevel))
-		if self.__zoomLevel != old:
-			core.set_value(self.__idZoom, str(self.__zoomLevel))
-			self.event('zoom', self.__zoomLevel)
+	def __resize(self, sender, data):
+		w, _ = self.parent.size
+		w = int(min(max(w, 16), 256))
+		core.configure_item(self.__idGroup, width=w)
+
+	def __zoom(self):
+		self.event('zoom', self.__slider.value)
 
 	@property
 	def zoomLevel(self):
-		return self.__zoomLevel
+		return self.__slider.value

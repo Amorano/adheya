@@ -11,6 +11,12 @@ from adheya.general import Label
 from adheya.node import Node
 from adheya.win import WindowMain
 
+def fileDotName(file: str, root: str) -> str:
+	path, _ = os.path.splitext(file)
+	name = os.path.abspath(path).replace(root, '')
+	name = name.replace(os.sep, '.').replace('__init__', '')
+	return name.strip('.')
+
 class NodeEditor(DPGObject):
 
 	_CYCLECHECK = True
@@ -23,7 +29,7 @@ class NodeEditor(DPGObject):
 		self.__nodeMap = {}
 		self.__nodes = {}
 		self.__links = {}
-		self.__root = os.path.dirname(os.path.realpath(__file__))
+		self.__root = os.path.dirname(os.path.abspath(__file__))
 
 		m = self.menubar.add('file')
 		m.add('load', callback=self.__load)
@@ -47,13 +53,9 @@ class NodeEditor(DPGObject):
 		with simple.popup(self.guid, self.__idNodeList, parent=self.guid):
 			...
 
-		self.libImport("adheya.nodeLib.nodeCore")
-		self.libImport("adheya.nodeLib.nodeMath")
-		self.libImport("adheya.nodeLib.nodeImage")
+		self.libImportDir(f'{self.__root}/nodeLib')
 
-		# self.register(CallbackType.MouseClick, self.__mouseClick)
 		self.register(CallbackType.Resize, self.__resize)
-		# self.register(CallbackType.MouseDrag, self.__drag)
 		self.register(CallbackType.MouseRelease, self.__resize)
 
 	def __resize(self, sender, data):
@@ -66,15 +68,14 @@ class NodeEditor(DPGObject):
 			simple.hide_item(self.__paneright)
 			return
 		simple.show_item(self.__paneright)
+		nodes = [self.__nodes[n] for n in nodes]
 
-		if "inspector" in core.get_all_items():
-			core.delete_item("inspector")
-
+		self.delete("inspector")
 		with simple.group("inspector", parent=self.__paneright):
 			for n in nodes:
-				n = self.__nodes[n]
 				inputs = n.inputs
 				inspector = f"spect-{n}"
+				# each widget...
 				with simple.group(inspector, parent="inspector"):
 					core.add_text(n.label)
 					for guid, attr in inputs.items():
@@ -82,7 +83,7 @@ class NodeEditor(DPGObject):
 						val = str(core.get_value(guid))
 						Label(label, label=attr.label, parent=inspector, default_value=val)
 
-				for _ in range(10):
+				for _ in range(5):
 					core.add_spacing()
 
 	def __nodelistRefresh(self):
@@ -117,7 +118,7 @@ class NodeEditor(DPGObject):
 		try:
 			data = self.__links[left]
 		except Exception as e:
-			print(str(e))
+			core.log_error(str(e))
 		else:
 			if right in data:
 				data.remove(right)
@@ -137,33 +138,41 @@ class NodeEditor(DPGObject):
 			if left in visited:
 				# delink in DPG and exit
 				core.delete_node_link(self.guid, attr1, attr2)
-				print("Nodes cannot be cyclic")
+				core.log_warning("Nodes cannot be cyclic")
 				return
 
 		data = self.__links.get(left, [])
 		data.append(right)
 		self.__links[left] = data
 
-		# node = right.split('-')[0]
 		# needs to call the dag list of edges from this node...
 		visited = set()
 		self.dfs(left, visited)
 		for v in visited:
-			if not self.__nodes[v].calculate():
+			print(v)
+			calc = self.__nodes[v].calculate
+			print(calc)
+			if not calc():
 				break
+		print(456)
 
 	def __save(self):
-		fp = f'{self.__root}/nodes.json'
+		fp = os.path.join(self.__root, 'nodes.json')
 		with open(fp, 'w') as fp:
+			# push all the nodes to the stack first, so the links all match up in the end.
+
 			for node in self.__nodes:
-				print(node)
-				print('-' * 30)
+				fp.write(node.dump)
+			# now the links
+			fp.write('link')
+			for node in self.__nodes:
 				for link in self.__links.get(node, []):
-					print(link)
-				print('=' * 80)
+					fp.write(link)
 
 	def __load(self):
-		fp = f'{self.__root}/nodes.json'
+		fp = os.path.join(self.__root, 'nodes.json')
+		if not os.path.exists(fp):
+			return
 		with open(fp, 'r') as fp:
 			data = json.load(fp)
 		print(data)
@@ -202,7 +211,7 @@ class NodeEditor(DPGObject):
 	# ============================================
 	# >> NODE DATABASE
 	# ============================================
-	def libImport(self, module):
+	def libImport(self, module, refresh=True):
 		"""Parse module for Node* classes."""
 		if isinstance(module, str):
 			try:
@@ -218,6 +227,19 @@ class NodeEditor(DPGObject):
 			data = self.__nodeMap.get(cat, [])
 			data.append(obj)
 			self.__nodeMap[cat] = sorted(data, key=lambda o: getattr(o, '_name', o.__name__))
+
+		if refresh:
+			self.__nodelistRefresh()
+
+	def libImportDir(self, path, recurse=True):
+		root = os.sep.join(self.__root.split(os.path.sep)[:-1])
+		for item in os.listdir(path):
+			full = os.path.normpath(os.path.join(path, item))
+			if recurse and os.path.isdir(item):
+				self.libImportDir(full)
+			elif full.endswith('.py') and os.path.isfile(full):
+				full = fileDotName(full, root)
+				self.libImport(full, refresh=False)
 
 		self.__nodelistRefresh()
 

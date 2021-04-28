@@ -6,10 +6,10 @@ from adheya.node import PlugType, AttributeType, Node
 class NodeMath(Node):
 	def __init__(self, guid, **kw):
 		super().__init__(guid, **kw)
-		self.attrAdd('a', AttributeType.Float1, default_value=0.)
-		self.attrAdd('b', AttributeType.Float1, default_value=0.)
-		self.attrAdd('+', AttributeType.Button, PlugType.Static, callback=self.__addAttr)
-		self.attrAdd('out', AttributeType.Label, PlugType.Output, default_value=' ')
+		self.attrAdd('a', AttributeType.Float1, default_value=0., parent=self)
+		self.attrAdd('b', AttributeType.Float1, default_value=0., parent=self)
+		self.attrAdd('+', AttributeType.Button, PlugType.Static, callback=self.__addAttr, parent=self)
+		self.attrAdd('out', AttributeType.Label, PlugType.Output, default_value=' ', parent=self)
 
 	def __addAttr(self, sender, data):
 		print(sender, data)
