@@ -1,6 +1,7 @@
 """."""
 
 from __future__ import annotations
+from functools import partial
 from enum import Enum
 from typing import Union
 from dearpygui import core
@@ -20,6 +21,9 @@ class CallbackType(Enum):
 	KeyRelease = 11
 	Accelerator = 12
 
+	def __str__(self):
+		return str(self.name)
+
 class Singleton(type):
 	"""It has one job to do."""
 	_instance = {}
@@ -32,10 +36,10 @@ class Callbacks(metaclass=Singleton):
 	def __init__(self, *arg, **kw):
 		self.__event = {k: [] for k in CallbackType}
 
+		core.set_mouse_drag_callback(lambda s, d: self.__callback(s, d, CallbackType.MouseDrag), .1)
 		core.set_render_callback(lambda s, d: self.__callback(s, d, CallbackType.Render))
 		core.set_resize_callback(lambda s, d: self.__callback(s, d, CallbackType.Resize))
 		core.set_mouse_down_callback(lambda s, d: self.__callback(s, d, CallbackType.MouseDown))
-		core.set_mouse_drag_callback(lambda s, d: self.__callback(s, d, CallbackType.MouseDrag), .1)
 		core.set_mouse_move_callback(lambda s, d: self.__callback(s, d, CallbackType.MouseMove))
 		core.set_mouse_double_click_callback(lambda s, d: self.__callback(s, d, CallbackType.MouseDoubleClick))
 		core.set_mouse_click_callback(lambda s, d: self.__callback(s, d, CallbackType.MouseClick))
@@ -47,8 +51,14 @@ class Callbacks(metaclass=Singleton):
 		core.set_accelerator_callback(lambda s, d: self.__callback(s, d, CallbackType.Accelerator))
 
 	def __callback(self, sender, data, event):
-		for cmd in self.__event[event]:
-			cmd(sender, data)
+		self.event(sender, event, data)
+
+	def event(self, sender, event, *arg, **kw):
+		callback = self.__event.get(event, None)
+		if callback:
+			sender = DPGObject.create(sender)
+			for x in callback:
+				x(sender, *arg, **kw)
 
 	def register(self, callback: Union[CallbackType, str], destination):
 		what = self.__event.get(callback, [])
@@ -56,17 +66,24 @@ class Callbacks(metaclass=Singleton):
 			what.append(destination)
 			self.__event[callback] = what
 
-	def event(self, sender, event, *arg, **kw):
-		callback = self.__event.get(event, [])
-		for x in callback:
-			x(*arg, **kw)
+class DPGWrap(object):
+	def __init__(self, func):
+		self.__func = func
 
-class DPGObject(object):
-	# everything made in this "wrapper" tracked via guid
+	def __call__(self, cmd):
+		def wrapper(guid, *arg, **kw):
+			# print(self.__func, guid, arg, kw)
+			return cmd(self.__func, guid, *arg, **kw)
+		return wrapper
+
+class DPGObject():
+	# guid tracking
 	_REGISTRY = {}
+
+	# global callback registry
 	_CALLBACK = Callbacks()
 
-	def __init__(self, guid, forced=False, **kw):
+	def __init__(self, guid, *arg, **kw):
 		# for uniqueness across all widgets; just because.
 		self.__guid = guid = guid or self.__class__.__name__
 		self.__label = kw.get('label', guid)
@@ -74,13 +91,12 @@ class DPGObject(object):
 		# could be an existing named item
 		index = 0
 		items = core.get_all_items()
-		# make unique if not forced
-		if not forced:
-			while self.__guid in self._REGISTRY or self.__guid in items:
-				self.__guid = f"{guid}_{index}"
-				index += 1
+		while self.__guid in self._REGISTRY or self.__guid in items:
+			self.__guid = f"{guid}_{index}"
+			index += 1
 
 		# horrible mechanism to map DPG objects with no native python side wrapper
+		# but what about items that already have valid parent?
 		p = kw.get('parent', None)
 		if isinstance(p, str):
 			if p not in self._REGISTRY:
@@ -145,38 +161,31 @@ class DPGObject(object):
 
 	@value.setter
 	def value(self, value):
-		old = core.get_value(self.__guid)
-		if value == old:
-			return
-		core.set_value(self.__guid, value)
+		if value != self.value:
+			core.set_value(self.__guid, value)
 
 	@property
 	def size(self):
 		return core.get_item_rect_size(self.__guid)
 
-	def configure(self, **kw):
-		core.configure_item(self.__guid, **kw)
-
-	def register(self, callback: Union[CallbackType, str], destination):
-		self._CALLBACK.register(callback, destination)
-
-	def event(self, event, *arg, **kw):
-		self._CALLBACK.event(self, event, *arg, **kw)
+	@classmethod
+	def create(cls, guid):
+		who = cls._REGISTRY.get(guid, None)
+		if who is None:
+			if guid in core.get_all_items():
+				who = DPGObject(who)
+		return who
 
 	@classmethod
 	def delete(cls, guid):
-		# item = cls._REGISTRY.get(guid, None)
-		# if item:
-			# use the wrapper to remove the kids...
-			# print('child')
-			#for c in item.children(recurse=False):
-			#	cls.delete(c.guid)
-
 		if guid in core.get_all_items():
 			for child in core.get_item_children(guid) or []:
 				cls.delete(child)
 			core.delete_item(guid)
-		x = cls._REGISTRY.pop(guid, None)
+		return cls._REGISTRY.pop(guid, None)
+
+	def configure(self, **kw):
+		core.configure_item(self.__guid, **kw)
 
 	def children(self, recurse=True, flat=False):
 		ret = [v for v in self._REGISTRY.values() if v.parent == self]
@@ -192,3 +201,10 @@ class DPGObject(object):
 				children = [children]
 			ret.extend(children)
 		return ret
+
+	def register(self, callback: Union[CallbackType, str], destination):
+
+		self._CALLBACK.register(callback, destination)
+
+	def event(self, event, *arg, **kw):
+		self._CALLBACK.event(self, event, *arg, **kw)

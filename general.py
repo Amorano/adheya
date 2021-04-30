@@ -1,17 +1,38 @@
 """."""
 
 import os
+from enum import Enum
 from queue import Queue
 from threading import Thread
 from dearpygui import core, simple
-from adheya import DPGObject
+from adheya import DPGObject, DPGWrap
+
+class ValueType(Enum):
+	Integer = 0
+	Float = 1
+
+class InputType(Enum):
+	Direct = 0
+	Drag = 1
+	Slider = 2
+
+class Container(DPGObject):
+	def __enter__(self):
+		yield self
+
+	def __exit__(self, *arg):
+		... #core.end()
+
+@DPGWrap(core.add_group)
+class Group(Container):
+	...
 
 class Label(DPGObject):
 	def __init__(self, guid, **kw):
 		super().__init__(guid, **kw)
 		dfv = kw.get('default_value', ' ')
 		group = f'{self.guid}-group'
-		with simple.group(group, parent=self.parent.guid, horizontal=True):
+		with Group(group, parent=self.parent.guid, horizontal=True):
 			core.add_text(f'{group}.label', default_value=self.label)
 			core.add_text(f'{group}.text', default_value=dfv)
 
@@ -156,9 +177,34 @@ class ProgressBar():
 		return self.__guid
 
 	def start(self):
-		simple.show_item(self.__guid)
+		self.show = True
+		# simple.show_item(self.__guid)
 		self.__worker = ThreadProgress(self, self.__q, callback=lambda: self.__callback(self.__guid))
 		self.__worker.start()
 
 	def reset(self):
 		self.__value = 0
+
+class Numeric(DPGObject):
+	def __init__(self, guid, valueType: ValueType=ValueType.Integer, inputType: InputType=InputType.Direct, **kw):
+		super().__init__(guid, **kw)
+		kw['parent'] = self.parent.guid
+
+		self.__inputType = inputType
+		self.__valueType = valueType
+		dfv = kw['default_value'] = kw.get('default_value', 0)
+
+		intype = ['input', 'drag', 'slider'][inputType.value]
+		vtype = ['int', 'float'][valueType.value]
+		size = len(dfv) if not isinstance(dfv, (int, float)) else ''
+		attr = f"add_{intype}_{vtype}{size}"
+		self.__cmd = getattr(core, attr)
+		self.__cmd(self.guid, **kw)
+
+	@property
+	def inputType(self):
+		return self.__inputType
+
+	@property
+	def valueType(self):
+		return self.__valueType

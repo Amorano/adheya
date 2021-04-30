@@ -62,7 +62,6 @@ class NodeEditor(DPGObject):
 		width = min(max(width, 0), int(w * .25))
 		core.configure_item(self.__paneright, height=h - 25, width=width, y_pos=-1, x_pos=w - width + 25)
 		nodes = core.get_selected_nodes(self.guid) or []
-		print(nodes)
 		if len(nodes) == 0:
 			simple.hide_item(self.__paneright)
 			return

@@ -3,8 +3,7 @@
 from enum import Enum
 from dearpygui import core, simple
 from adheya import DPGObject, CallbackType
-from adheya.general import Label, FileHandle, FileImage
-from adheya.numeric import Numeric, InputType
+from adheya.general import Label, FileHandle, FileImage, Numeric, InputType
 
 class PlugType(Enum):
 	Input = 0
