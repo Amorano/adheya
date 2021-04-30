@@ -9,7 +9,6 @@ from dearpygui import core, simple
 from adheya import DPGObject, CallbackType
 from adheya.general import Label
 from adheya.node import Node
-from adheya.win import WindowMain
 
 def fileDotName(file: str, root: str) -> str:
 	path, _ = os.path.splitext(file)
@@ -45,8 +44,7 @@ class NodeEditor(DPGObject):
 		kw['autosize'] = False
 		kw.pop('parent', None)
 		with simple.window(self.__paneright, **kw):
-			with simple.group(f"{self.__paneright}-inspector", parent=self.__paneright):
-				...
+			...
 
 		# placeholder for all context menu popups since we cant figure out what things we are over?
 		self.__idNodeList = f"{self.guid}-nodelist"
@@ -64,13 +62,14 @@ class NodeEditor(DPGObject):
 		width = min(max(width, 0), int(w * .25))
 		core.configure_item(self.__paneright, height=h - 25, width=width, y_pos=-1, x_pos=w - width + 25)
 		nodes = core.get_selected_nodes(self.guid) or []
+		print(nodes)
 		if len(nodes) == 0:
 			simple.hide_item(self.__paneright)
 			return
 		simple.show_item(self.__paneright)
 		nodes = [self.__nodes[n] for n in nodes]
 
-		self.delete("inspector")
+		DPGObject.delete("inspector")
 		with simple.group("inspector", parent=self.__paneright):
 			for n in nodes:
 				inputs = n.inputs
@@ -245,16 +244,3 @@ class NodeEditor(DPGObject):
 
 	def registry(self, index):
 		return self.__nodeMap[index]
-
-class AdheyaEditor(WindowMain):
-	def __init__(self):
-		core.set_main_window_size(560, 740)
-		core.set_style_item_spacing(2, 1)
-		core.set_style_frame_padding(2, 1)
-		core.set_style_window_padding(2, 0)
-		super().__init__()
-		self.__nodeEditor = NodeEditor(self)
-
-if __name__ == "__main__":
-	editor = AdheyaEditor()
-	editor.open()
