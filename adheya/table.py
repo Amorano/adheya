@@ -15,11 +15,23 @@ class Table(DPGObject):
 		# the rows to filter during a search
 		self.__rows = []
 
-		self.__filter = re.compile('.*')
+		self.__filter = '.*'
 		self.__idPanel = f'{self.__guid}-panel'
 
 		with simple.group(self.__idPanel):
 			...
+
+	@property
+	def filter(self):
+		return self.__filter
+
+	@filter.setter
+	def filter(self, value):
+		newval = value or '.*'
+		if newval == self.__filter:
+			return
+		self.__filter = newval
+		self.__tableRefresh()
 
 	def __tableRefresh(self):
 		if core.does_item_exist(self.__guid):
@@ -28,15 +40,12 @@ class Table(DPGObject):
 		# build the data model so we can search it
 		core.add_table(self.__guid, self.__headers, parent=self.__idPanel)
 
+		searcher = re.compile(self.__filter)
 		for row in self.__rows:
 			for cell in row:
-				if self.__filter.search(cell):
+				if searcher.search(cell):
 					core.add_row("table", row)
 					break
-
-	@property
-	def filter(self, value):
-		self.__filter = re.compile(value or '.*', re.I)
 
 	def load(self, path):
 		"""Load a CSV into the table."""
@@ -48,6 +57,7 @@ class Table(DPGObject):
 					break
 			self.__headers = header
 			self.__rows = [d for d in data]
+		self.__tableRefresh()
 
 	def save(self, path):
 		with open(path, 'w') as f:
