@@ -108,3 +108,35 @@ class Numeric(DPGObject):
 	@property
 	def valueType(self):
 		return self.__valueType
+
+class InputText(DPGObject):
+	...
+
+
+
+class Button(DPGObject):
+	...
+
+class ButtonArrow(DPGObject):
+	...
+
+class ColorButton(DPGObject):
+	...
+
+class ColorPicker(DPGObject):
+	...
+
+class Checkbox(DPGObject):
+	...
+
+class Selectable(DPGObject):
+	...
+
+class RadioButtons(DPGObject):
+	...
+
+class ListBox(DPGObject):
+	...
+
+class Combo(DPGObject):
+	...

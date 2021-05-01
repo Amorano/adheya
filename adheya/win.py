@@ -4,7 +4,7 @@ import re
 from enum import Enum
 from dearpygui import core, simple
 from adheya.theme import ThemeManager
-from adheya import DPGObject, Singleton
+from adheya import DPGObject, Singleton, DPGWrap
 
 class MenuEntry(Enum):
 	Menu = 0
@@ -149,3 +149,7 @@ class MenuItem(DPGObject):
 		kw['parent'] = parent
 		super().__init__(name, **kw)
 		core.add_menu_item(name, **kw)
+
+@DPGWrap(core.add_popup)
+class Popup(DPGObject):
+	...

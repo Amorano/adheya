@@ -39,10 +39,6 @@ class SpacingHorizontal(DPGObject):
 class Dummy(DPGObject):
 	...
 
-
-"""
-	HAlignNext
-	LayoutColumns
-	LayoutIndent
-	ChildView
-"""
+@DPGWrap(core.add_separator)
+class Separator(DPGObject):
+	...
