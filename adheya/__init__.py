@@ -1,7 +1,6 @@
 """."""
 
 from __future__ import annotations
-from functools import partial
 from enum import Enum
 from typing import Union
 from dearpygui import core
@@ -166,10 +165,15 @@ class DPGObject():
 
 	@property
 	def size(self):
-		return core.get_item_rect_size(self.__guid)
+		w, h = core.get_item_rect_size(self.__guid)
+		return int(w), int(h)
+
+	@property
+	def dpgType(self):
+		return core.get_item_type(self.__guid)
 
 	@classmethod
-	def create(cls, guid):
+	def create(cls, guid: str):
 		who = cls._REGISTRY.get(guid, None)
 		if who is None:
 			if guid in core.get_all_items():
@@ -177,7 +181,7 @@ class DPGObject():
 		return who
 
 	@classmethod
-	def delete(cls, guid):
+	def delete(cls, guid: str):
 		if guid in core.get_all_items():
 			for child in core.get_item_children(guid) or []:
 				cls.delete(child)

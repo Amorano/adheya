@@ -2,8 +2,9 @@
 
 import re
 import csv
-from dearpygui import core, simple
+from dearpygui import core
 from adheya import DPGObject
+from adheya.layout import Group
 
 class Table(DPGObject):
 	def __init__(self, name, **kw):
@@ -16,10 +17,8 @@ class Table(DPGObject):
 		self.__rows = []
 
 		self.__filter = '.*'
-		self.__idPanel = f'{self.__guid}-panel'
-
-		with simple.group(self.__idPanel):
-			...
+		# self.__idPanel = f'{self.__guid}-panel'
+		self.__panel = Group(self.__idPanel)
 
 	@property
 	def filter(self):
@@ -38,7 +37,7 @@ class Table(DPGObject):
 			core.delete_item(self.__guid)
 
 		# build the data model so we can search it
-		core.add_table(self.__guid, self.__headers, parent=self.__idPanel)
+		core.add_table(self.__guid, self.__headers, parent=self.__panel.guid)
 
 		searcher = re.compile(self.__filter)
 		for row in self.__rows:
@@ -46,6 +45,14 @@ class Table(DPGObject):
 				if searcher.search(cell):
 					core.add_row("table", row)
 					break
+
+	def columnAdd(self, col):
+		...
+
+	def rowAdd(self, data):
+		...
+
+	# @TODO: allow access to cells via __index__?
 
 	def load(self, path):
 		"""Load a CSV into the table."""

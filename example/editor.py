@@ -2,7 +2,7 @@
 
 from dearpygui import core
 from adheya.win import WindowMain
-from adheya.nodeEditor import NodeEditor
+from adheya.node import NodeEditor
 
 class AdheyaEditor(WindowMain):
 	def __init__(self):
