@@ -1,6 +1,7 @@
 """."""
 
-from adheya.node import PlugType, AttributeType, Node, NodeZoom
+from adheya.general import ColorPicker, FileImage
+from adheya.node import PlugType, Node, NodeZoom
 
 class NodeColor(Node):
 	_name = "Color4"
@@ -8,7 +9,7 @@ class NodeColor(Node):
 
 	def __init__(self, guid, **kw):
 		super().__init__(guid, **kw)
-		self.attrAdd('color', AttributeType.Pick4, PlugType.Output, default_value=(128, 128, 128, 255))
+		self.attrAdd('color', ColorPicker, PlugType.Output, default_value=(128, 128, 128, 255))
 
 	def calculate(self):
 		...
@@ -19,7 +20,7 @@ class NodeImage(NodeZoom):
 
 	def __init__(self, guid, **kw):
 		super().__init__(guid, **kw)
-		self.__file = self.attrAdd('file', AttributeType.FileImage, PlugType.Output, extensions='.png, .jpg')
+		self.__file = self.attrAdd('file', FileImage, PlugType.Output, extensions='.png, .jpg')
 
 	def calculate(self):
 		if self.__file is None:
@@ -31,7 +32,7 @@ class NodeBlend(Node):
 
 	def __init__(self, guid, **kw):
 		super().__init__(guid, **kw)
-		self.attrAdd('color', AttributeType.Pick4, PlugType.Output, default_value=(128, 128, 128, 255))
+		self.attrAdd('color', ColorPicker, PlugType.Output, default_value=(128, 128, 128, 255))
 
 	def calculate(self):
 		...

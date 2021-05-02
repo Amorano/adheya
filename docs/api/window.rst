@@ -34,7 +34,7 @@ Main Window
 .. autoclass:: WindowMain
 	:members:
 	:undoc-members:
-
+	:special-members: __exit__
 
 MenuBar
 -------
@@ -43,6 +43,7 @@ MenuBar
 	:members:
 	:undoc-members:
 	:special-members:
+	:special-members: __exit__
 
 .. autoclass:: Menu
     :members:

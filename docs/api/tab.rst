@@ -1,5 +1,5 @@
-Tab View
-========
+TabView
+=======
 
 .. automodule:: adheya.tab
 
@@ -16,8 +16,8 @@ Tab View
     TabButton
 
 
-Tab View
---------
+TabBar
+------
 
 .. autoclass:: TabBar
     :members:
@@ -27,7 +27,6 @@ Tab View
 .. autoclass:: Tab
     :members:
     :undoc-members:
-    :special-members: __exit__
 
 .. autoclass:: TabButton
     :members:

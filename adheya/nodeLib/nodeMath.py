@@ -1,15 +1,17 @@
 """."""
 
 from dearpygui import core
-from adheya.node import PlugType, AttributeType, Node
+from adheya.feedback import Label
+from adheya.general import NumericFloat, Button
+from adheya.node import PlugType, Node
 
 class NodeMath(Node):
-	def __init__(self, guid, **kw):
-		super().__init__(guid, **kw)
-		self.attrAdd('a', AttributeType.Float1, default_value=0., parent=self)
-		self.attrAdd('b', AttributeType.Float1, default_value=0., parent=self)
-		self.attrAdd('+', AttributeType.Button, PlugType.Static, callback=self.__addAttr, parent=self)
-		self.attrAdd('out', AttributeType.Label, PlugType.Output, default_value=' ', parent=self)
+	def __init__(self, parent, **kw):
+		super().__init__(parent, **kw)
+		self.attrAdd('a', NumericFloat, default_value=0.)
+		self.attrAdd('b', NumericFloat, default_value=0.)
+		self.attrAdd('+', Button, PlugType.Static, callback=self.__addAttr)
+		self.attrAdd('out', Label, PlugType.Output, default_value=' ')
 
 	def __addAttr(self, sender, data):
 		print(sender, data)

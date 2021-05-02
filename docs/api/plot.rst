@@ -26,16 +26,6 @@ Plot
 Series
 ------
 
-.. automodule:: adheya.plot
-
-.. rubric:: Summary
-
-.. autosummary::
-    :nosignatures:
-
-    Series
-    SeriesType
-
 .. autoclass:: Series
     :members:
     :undoc-members:

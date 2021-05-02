@@ -21,9 +21,8 @@ class SeriesType(Enum):
 	Vline = 13
 
 class Series(DPGObject):
-	def __init__(self, guid, parent, series: SeriesType, *arg, **kw):
-		kw['parent'] = parent
-		super().__init__(guid, **kw)
+	def __init__(self, parent, series: SeriesType, *arg, **kw):
+		super().__init__(parent, **kw)
 		cmd = f'add_{series.name.lower()}_series'
 		cmd = getattr(core, cmd)
 		cmd(self.parent.guid, self.guid, *arg, **kw)

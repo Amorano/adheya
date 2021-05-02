@@ -37,3 +37,35 @@ DPGObject
         value
         size
         dpgType
+
+
+Callbacks
+---------
+
+.. autoclass:: Callbacks
+    :members:
+    :undoc-members:
+
+
+CallbackType
+------------
+
+.. autoclass:: CallbackType
+    :members:
+    :undoc-members:
+
+
+Singleton
+---------
+
+.. autoclass:: Singleton
+    :members:
+    :undoc-members:
+
+
+DPGWrap
+-------
+
+.. autoclass:: DPGWrap
+    :members:
+    :undoc-members:

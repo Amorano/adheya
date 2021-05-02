@@ -1,5 +1,5 @@
-Node
-====
+Nodes
+=====
 
 .. automodule:: adheya.node
 
@@ -14,9 +14,8 @@ Node
     Node
     NodeZoom
     NodeAttribute
-    AttributeType
     PlugType
-
+    NodeEditor
 
 Node
 ----
@@ -25,7 +24,6 @@ Node
     :members:
     :undoc-members:
 
-
 NodeZoom
 --------
 
@@ -33,15 +31,9 @@ NodeZoom
     :members:
     :undoc-members:
 
-
 NodeAttribute
 -------------
-
 .. autoclass:: NodeAttribute
-    :members:
-    :undoc-members:
-
-.. autoclass:: AttributeType
     :members:
     :undoc-members:
 
@@ -51,7 +43,6 @@ NodeAttribute
 
 NodeEditor
 ----------
-
 .. autoclass:: NodeEditor
     :members:
     :undoc-members:

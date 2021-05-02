@@ -65,3 +65,11 @@ autodoc_type_aliases = {
 autodoc_mock_imports = ['dearpygui']
 
 napoleon_numpy_docstring = False
+
+html_context = {
+	"display_github": True,
+	"github_user": "amorano",
+	"github_repo": "adheya",
+	"github_version": "master",
+	"conf_py_path": "/docs/",
+}

@@ -22,11 +22,12 @@ Feedback
     :members:
     :undoc-members:
 
-    .. autoattribute:: value
-
 
 .. autoclass:: ProgressBar
     :members:
     :undoc-members:
 
-    .. autoattribute:: value
+
+.. autoclass:: ThreadProgress
+    :members:
+    :undoc-members:

@@ -6,11 +6,13 @@ API Reference
    :caption: Contents:
 
    core
+   draw
    feedback
    general
    layout
    node
    tab
    table
+   tree
    window
    plot
