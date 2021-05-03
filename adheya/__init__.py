@@ -64,7 +64,8 @@ Callback = Callback()
 
 class Registry(object):
 	"""Where all DPG objects are tracked."""
-	def __init__(self):
+	def __init__(self, *arg, **kw):
+		super().__init__(*arg, **kw)
 		self.__registry = {}
 		self.__mainWindow = None
 
@@ -76,14 +77,14 @@ class Registry(object):
 
 	def __setitem__(self, guid, obj):
 		# must exist inside the DPG space if we are tracking
-		if guid not in core.get_all_items():
-			core.log_error(f"{guid} not in DPG database.")
-			return
-		print(core.get_item_type(guid))
-		if core.get_item_type(guid) == 'Main Window':
+		#if guid not in core.get_all_items():
+		#	core.log_error(f"{guid} not in DPG database.")
+		#	return
+		if guid in core.get_all_items() and core.get_item_type(guid) == 'mvAppItemType::Window':
 			if self.__mainWindow:
 				raise Exception("only allowed one main window per dpg instance")
 			self.__mainWindow = obj
+			print('main window set')
 		self.__registry[guid] = obj
 		return obj
 
@@ -93,6 +94,10 @@ class Registry(object):
 				del Registry[child]
 			core.delete_item(guid)
 		return self.__registry.pop(guid, None)
+
+	@property
+	def keys(self):
+		return list(self.__registry.keys())
 
 	@property
 	def main(self):
@@ -108,7 +113,7 @@ class Registry(object):
 			return p
 		# check the DPG registry, and create a wrap if missing
 		if core.does_item_exist(guid):
-			parent = core.get_item_parent(guid)
+			parent = core.get_item_configuration(guid).get('parent', None)
 			return DPGObject(parent, guid=guid)
 
 Registry = Registry()
@@ -120,10 +125,9 @@ class DPGObject(object):
 	_GUID = True
 
 	def __init__(self, parent, *arg, guid=None, **kw):
-		# register any parent that might not be, and fixate mine.
-		parent = Registry.main or parent
-		self.__guid = name = guid = guid or self.__class__.__name__
-		parent = Registry.find(parent)
+		# register any parent that might not be, and fixate mine, or use Main Window if any
+		parent = Registry.find(Registry.main or parent)
+		name = guid = guid or self.__class__.__name__
 
 		# could be an existing named item
 		index = 0
@@ -134,7 +138,6 @@ class DPGObject(object):
 		self.__guid = guid
 		self.__label = kw.get('label', guid)
 		self.__parent = parent
-
 		if self._CMD:
 			# its just a pass thru widget, so pass it thru
 			kw['parent'] = parent.guid if parent else None
@@ -144,6 +147,8 @@ class DPGObject(object):
 				self._CMD(**kw)
 
 		Registry[guid] = self
+		if Registry[guid] is None:
+			raise Exception("COMPLETE FAILURE")
 
 	def __str__(self):
 		return self.__guid

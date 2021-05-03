@@ -8,11 +8,11 @@ class Window(DPGObject):
 	def __init__(self, **kw):
 		super().__init__(None, **kw)
 		with simple.window(self.guid, **kw):
-			self.__menubar = MenuBar(self.guid) if kw.get('menubar', None) else None
+			self.__mainbar = MenuBar(self)
 
 	@property
-	def menubar(self):
-		return self.__menubar
+	def mainbar(self):
+		return self.__mainbar
 
 	def open(self):
 		if Registry.main is None:
@@ -23,11 +23,8 @@ class Window(DPGObject):
 class WindowMain(Window):
 	"""."""
 	def __init__(self, **kw):
-		kw['menubar'] = kw.get('menubar', True)
 		super().__init__(**kw)
-
 		self.__cache = {}
-
 		# close event as well -- can register for "close"/"exit"
 		core.set_exit_callback(self.__exit)
 		self.__cacheRefresh()
@@ -104,11 +101,11 @@ class WindowMain(Window):
 		return ret
 
 class MenuBar(DPGObject):
-	def __init__(self, parent, *arg, **kw):
-		super().__init__(parent, *arg, **kw)
+	def __init__(self, parent, **kw):
+		super().__init__(parent, **kw)
 		self.__menu = {}
 		kw['parent'] = self.parent.guid
-		core.add_menu_bar(self.guid, *arg, **kw)
+		core.add_menu_bar(self.guid, **kw)
 		core.end()
 
 	def add(self, name, **kw):
@@ -120,6 +117,9 @@ class MenuBar(DPGObject):
 		else:
 			core.log_error(f"{name} already exists")
 		return m
+
+	def __getitem__(self, item):
+		return self.__menu[item]
 
 class Menu(DPGObject):
 	def __init__(self, parent, *arg, **kw):

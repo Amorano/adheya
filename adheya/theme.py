@@ -2,15 +2,18 @@
 
 import json
 import os.path
-from dearpygui import core
+from dearpygui import core, simple
+import dearpygui
 from adheya.win import Window
 from adheya.general import ListBox
 
 class ThemeManager(Window):
 	def __init__(self, theme=None, root=None):
-		super().__init__(label='Theme Manager', autosize=True)
 		self.__theme = {}
 		self.__current = theme
+		super().__init__(label='Theme Manager', autosize=True)
+
+		self.mainbar.show = False
 
 		if root is None:
 			root = os.path.dirname(os.path.realpath(__file__))
@@ -44,11 +47,6 @@ class ThemeManager(Window):
 		k = [k for k in self.__theme]
 		theme = k[0] if len(k) else None
 		self.apply(theme)
-
-	def __str__(self):
-		size = len(self.__theme.keys())
-		current = self.__current or "None"
-		return f"[{current}] {size} themes"
 
 	@property
 	def current(self):

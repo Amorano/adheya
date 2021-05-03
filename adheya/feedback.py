@@ -6,18 +6,23 @@ from threading import Thread
 from dearpygui import core
 from adheya import DPGObject
 from adheya.layout import Group
-from adheya.general import Text
 
 class Label(DPGObject):
-	_CMD = core.add_text
+	def __init__(self, parent, **kw):
+		super().__init__(parent, **kw)
+		kw['parent'] = self.parent.guid
+		label = kw.pop('label', self.label)
+		kw.pop('width', None)
+		kw['default_value'] = kw.get('default_value', label)
+		core.add_text(self.guid, **kw)
 
 class Field(DPGObject):
-	def __init__(self, parent, *arg, **kw):
-		super().__init__(parent, *arg, **kw)
+	def __init__(self, parent, **kw):
+		super().__init__(parent, **kw)
 		dfv = kw.get('default_value', ' ')
 		g = Group(self.parent, horizontal=True)
-		self.__label = Text(g.guid, default_value=self.label)
-		self.__value = Text(g.guid, default_value=dfv)
+		self.__label = Label(g.guid, default_value=self.label)
+		self.__value = Label(g.guid, default_value=dfv)
 
 	@property
 	def text(self):

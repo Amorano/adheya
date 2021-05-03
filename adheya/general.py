@@ -35,7 +35,7 @@ class FileHandle(DPGObject):
 		self.__ext = kw.pop('extensions', '.*')
 
 		cofd = core.open_file_dialog
-		g = Group(self, width=32)
+		g = Group(self.parent, width=32)
 		Button(g, label='load', callback=lambda: cofd(self.__load, extensions=self.__ext))
 
 	@property
@@ -61,7 +61,7 @@ class FileImage(FileHandle):
 		self.__min = kw.pop('pmin', [0, 0])
 		self.__max = kw.pop('pmax', [0, 0])
 		super().__init__(parent, **kw)
-		print(parent, self.parent)
+
 		self.__idCanvas = f'{self.guid}-canvas'
 		core.add_drawing(self.__idCanvas, width=self.__max[0], height=self.__max[1], parent=self.parent.guid)
 		self.__data = []

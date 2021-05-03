@@ -181,7 +181,7 @@ class NodeEditor(DPGObject):
 		self.__root = os.path.dirname(os.path.abspath(__file__))
 		self.__paneRight = Window(no_title_bar=True)
 
-		m = self.menubar.add('file')
+		m = self.mainbar.add('file')
 		m.addItem('load', callback=self.__load)
 		m.addItem('save', callback=self.__save)
 
