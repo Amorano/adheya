@@ -2,7 +2,7 @@
 
 from enum import Enum
 from dearpygui import core
-from adheya import DPGObject, DPGWrap
+from adheya import DPGObject, Registry
 
 class SeriesType(Enum):
 	Area = 0,
@@ -22,15 +22,14 @@ class SeriesType(Enum):
 
 class Series(DPGObject):
 	def __init__(self, parent, series: SeriesType, *arg, **kw):
-		super().__init__(parent, **kw)
+		super().__init__(parent, *arg, **kw)
 		cmd = f'add_{series.name.lower()}_series'
 		cmd = getattr(core, cmd)
 		cmd(self.parent.guid, self.guid, *arg, **kw)
 
 	def delete(self):
 		core.delete_series(self.guid)
-		DPGObject.delete(self.guid)
+		del Registry[self.guid]
 
-@DPGWrap(core.add_plot)
 class Plot(DPGObject):
-	...
+	_CMD = core.add_plot

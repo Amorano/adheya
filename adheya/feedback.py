@@ -2,9 +2,10 @@
 
 from queue import Queue
 from threading import Thread
-from dearpygui import core, simple
+from dearpygui import core
 from adheya import DPGObject
 from adheya.layout import Group
+from adheya.general import Text
 
 class ThreadProgress(Thread):
 	"""Threaded progress bar widget."""
@@ -27,54 +28,55 @@ class ThreadProgress(Thread):
 			self.__callback()
 
 class Label(DPGObject):
-	def __init__(self, guid, **kw):
-		super().__init__(guid, **kw)
+	_CMD = core.add_text
+
+class Field(DPGObject):
+	def __init__(self, parent, *arg, **kw):
+		super().__init__(parent, *arg, **kw)
 		dfv = kw.get('default_value', ' ')
-		group = f'{self.guid}-group'
-		with Group(group, parent=self.parent.guid, horizontal=True):
-			core.add_text(f'{group}.label', default_value=self.label)
-			core.add_text(f'{group}.text', default_value=dfv)
+		g = Group(self.parent, horizontal=True)
+		self.__label = Text(g.guid, default_value=self.label)
+		self.__value = Text(g.guid, default_value=dfv)
 
 	@property
 	def text(self):
-		return core.get_value(f'{self.guid}-group.label')
+		return self.__label.value
 
 	@text.setter
 	def text(self, val):
-		core.set_value(f'{self.guid}-group.label', val)
+		self.__label = val
 
 	@property
 	def value(self):
-		return core.get_value(f'{self.guid}-group.text')
+		return self.__value.value
 
 	@value.setter
 	def value(self, val):
-		core.set_value(f'{self.guid}-group.text', val)
+		self.__value = val
 
 class ProgressBar(DPGObject):
-	_index = 0
-	def __init__(self, guid, callback=None, **kw):
-		super().__init__(guid)
-		self.__idGroup = f"{self.__guid}-group"
-		self.__callback = callback
+	def __init__(self, parent, **kw):
+		super().__init__(parent, **kw)
+
+		self.__callback = kw.pop('callback', None)
 		self.__worker = None
 		self.__q = Queue()
-		self.__value = 0
 
 		width, _ = self.parent.rect
 		kw['width'] = kw.get('width', width)
 		kw['show'] = kw.get('show', False)
 		kw.pop('parent', None)
-		with simple.group(self.__idGroup, width=width, parent=self.guid):
-			core.add_progress_bar(self.__guid, **kw)
+
+		self.__group = Group(self, width=width)
+		core.add_progress_bar(self.__group, **kw)
 
 	@property
-	def progress(self):
-		return self.__value
+	def value(self):
+		return self.value
 
-	@progress.setter
-	def progress(self, val):
-		self.__value = val
+	@value.setter
+	def value(self, val):
+		# self.value = val
 		data = f'{round(val * 100)}%'
 		if val < 0:
 			val = 0
@@ -82,15 +84,8 @@ class ProgressBar(DPGObject):
 			val = None
 		self.__q.put((val, data))
 
-	@property
-	def guid(self):
-		return self.__guid
-
 	def start(self):
 		self.show = True
 		# simple.show_item(self.__guid)
 		self.__worker = ThreadProgress(self, self.__q, callback=lambda: self.__callback(self.__guid))
 		self.__worker.start()
-
-	def reset(self):
-		self.__value = 0

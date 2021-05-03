@@ -1,16 +1,13 @@
 """."""
 
 from dearpygui import core
-from adheya import DPGObject, DPGWrap
+from adheya import DPGObject
 
-@DPGWrap(core.add_tab_bar)
 class Tree(DPGObject):
-	...
+	_CMD = core.add_tree
 
-@DPGWrap(core.add_tab)
 class TreeNode(DPGObject):
-	...
+	_CMD = core.add_tree_node
 
-@DPGWrap(core.add_tab_button)
 class TreeNodeHeader(DPGObject):
-	...
+	_CMD = core.add_treenode_header

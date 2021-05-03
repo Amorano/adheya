@@ -59,7 +59,7 @@ class ThemeManager():
 	def apply(self, who):
 		theme = self.__theme.get(who, None)
 		if theme is None:
-			print(f"no theme: {who}")
+			core.log_error(f"no theme: {who}")
 			return
 
 		overall = theme.get("theme", None)
@@ -78,7 +78,7 @@ class ThemeManager():
 				try:
 					meth = getattr(core, meth)
 				except Exception as _:
-					print(f"no function: {meth}")
+					core.log_error(f"no function: {meth}")
 					continue
 
 				if const:
@@ -86,7 +86,7 @@ class ThemeManager():
 					try:
 						nv = getattr(core, nv)
 					except Exception as _:
-						print(f"no constant: {nv}")
+						core.log_error(f"no constant: {nv}")
 						continue
 					v = [nv] + [int(c * 255) for c in v]
 

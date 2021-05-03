@@ -1,8 +1,7 @@
 """."""
 
 from dearpygui import core
-from adheya import DPGObject, DPGWrap
+from adheya import DPGObject
 
-@DPGWrap(core.add_tab_bar)
 class Canvas(DPGObject):
-	...
+	_CMD = core.add_tab_bar

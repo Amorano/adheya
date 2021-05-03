@@ -23,15 +23,7 @@ class CallbackType(Enum):
 	def __str__(self):
 		return str(self.name)
 
-class Singleton(type):
-	"""It has one job to do."""
-	_instance = {}
-	def __call__(cls, *arg, **kw):
-		if cls not in cls._instance:
-			cls._instance[cls] = super(Singleton, cls).__call__(*arg, **kw)
-		return cls._instance[cls]
-
-class Callbacks(metaclass=Singleton):
+class Callback():
 	def __init__(self, *arg, **kw):
 		self.__event = {k: [] for k in CallbackType}
 
@@ -55,7 +47,10 @@ class Callbacks(metaclass=Singleton):
 	def event(self, sender, event, *arg, **kw):
 		callback = self.__event.get(event, None)
 		if callback:
-			sender = DPGObject.create(sender)
+			# find the "string" sender in the local registry
+			sender = Registry[sender]
+			if sender is None:
+				sender = DPGObject(None, name=sender)
 			for x in callback:
 				x(sender, *arg, **kw)
 
@@ -65,59 +60,91 @@ class Callbacks(metaclass=Singleton):
 			what.append(destination)
 			self.__event[callback] = what
 
-class DPGWrap(object):
-	def __init__(self, func):
-		self.__func = func
+Callback = Callback()
 
-	def __call__(self, cmd):
-		def wrapper(guid, *arg, **kw):
-			# print(self.__func, guid, arg, kw)
-			return cmd(self.__func, guid, *arg, **kw)
-		return wrapper
+class Registry(object):
+	"""Where all DPG objects are tracked."""
+	def __init__(self):
+		self.__registry = {}
 
-class DPGObject():
-	# guid tracking
-	_REGISTRY = {}
+	def __contains__(self, val):
+		return val in self.__registry
 
-	# global callback registry
-	_CALLBACK = Callbacks()
+	def __getitem__(self, key):
+		return self.__registry.get(key, None)
 
-	def __init__(self, guid, *arg, **kw):
-		# for uniqueness across all widgets; just because.
-		self.__guid = guid = guid or self.__class__.__name__
-		self.__label = kw.get('label', guid)
+	def __setitem__(self, guid, obj):
+		# must exist inside the DPG space if we are tracking
+		if guid not in core.get_all_items():
+			core.log
+		self.__registry[guid] = obj
+		return obj
+
+	def __delitem__(self, guid: str):
+		if core.does_item_exist(guid):
+			for child in core.get_item_children(guid) or []:
+				del Registry[child]
+			core.delete_item(guid)
+		return self.__registry.pop(guid, None)
+
+	def find(self, guid):
+		"""Search DPG for the item."""
+		# assume only str or DPGObject
+		if not isinstance(guid, str):
+			return guid
+		# anything local first?
+		if p := self.__registry.get(guid, None):
+			return p
+		# check the DPG registry, and create a wrap if missing
+		if core.does_item_exist(guid):
+			parent = core.get_item_parent(guid)
+			return DPGObject(parent, guid=guid)
+
+Registry = Registry()
+
+class DPGObject(object):
+	# the DPG routed command, if any
+	_CMD = None
+	# if this widget needs to pass its guid to the DPG contructor
+	_GUID = True
+
+	def __init__(self, parent, *arg, guid=None, **kw):
+		# register any parent that might not be, and fixate mine.
+		self.__guid = name = guid = guid or self.__class__.__name__
+		parent = Registry.find(parent)
 
 		# could be an existing named item
 		index = 0
-		items = core.get_all_items()
-		while self.__guid in self._REGISTRY or self.__guid in items:
-			self.__guid = f"{guid}_{index}"
+		while guid in Registry:
+			guid = f"{name}_{index}"
 			index += 1
 
-		# horrible mechanism to map DPG objects with no native python side wrapper
-		# but what about items that already have valid parent?
-		p = kw.get('parent', None)
-		if isinstance(p, str):
-			if p not in self._REGISTRY:
-				if p in items:
-					p = DPGObject(p, forced=True)
+		self.__guid = guid
+		self.__label = kw.get('label', guid)
+		self.__parent = parent
+
+		if self._CMD:
+			# its just a pass thru widget, so pass it thru
+			kw['parent'] = parent.guid if parent else None
+			if self._GUID:
+				self._CMD(guid, **kw)
 			else:
-				p = self._REGISTRY[p]
+				self._CMD(**kw)
 
-		self.__parent = p
-		self._REGISTRY[self.__guid] = self
-
-	def __repr__(self):
-		return self.__guid
+		Registry[guid] = self
 
 	def __str__(self):
 		return self.__guid
 
 	def __getattr__(self, attr):
 		try:
-			return getattr(self.parent, attr)
+			return getattr(self.__parent, attr)
 		except AttributeError as _:
-			return core.get_item_configuration(self.__guid)[attr]
+			try:
+				return core.get_item_configuration(self.__guid)[attr]
+			except Exception as _:
+				ret = f"missing {self}.{attr}"
+				core.log_error(ret)
 
 	def __setattr__(self, attr, value):
 		if attr.startswith('_'):
@@ -125,11 +152,11 @@ class DPGObject():
 		else:
 			core.configure_item(self.__guid, **{attr: value})
 
+	def delete(self):
+		del Registry[self.__guid]
+
 	@property
 	def parent(self) -> DPGObject:
-		if self.__parent is None:
-			parent = core.get_item_parent(self.__guid)
-			self.__parent = self.__registerDPGParent(parent) if parent else parent
 		return self.__parent
 
 	@property
@@ -172,22 +199,6 @@ class DPGObject():
 	def dpgType(self):
 		return core.get_item_type(self.__guid)
 
-	@classmethod
-	def create(cls, guid: str):
-		who = cls._REGISTRY.get(guid, None)
-		if who is None:
-			if guid in core.get_all_items():
-				who = DPGObject(who)
-		return who
-
-	@classmethod
-	def delete(cls, guid: str):
-		if guid in core.get_all_items():
-			for child in core.get_item_children(guid) or []:
-				cls.delete(child)
-			core.delete_item(guid)
-		return cls._REGISTRY.pop(guid, None)
-
 	def configure(self, **kw):
 		core.configure_item(self.__guid, **kw)
 
@@ -207,8 +218,7 @@ class DPGObject():
 		return ret
 
 	def register(self, callback: Union[CallbackType, str], destination):
-
-		self._CALLBACK.register(callback, destination)
+		Callback.register(callback, destination)
 
 	def event(self, event, *arg, **kw):
-		self._CALLBACK.event(self, event, *arg, **kw)
+		Callback.event(self, event, *arg, **kw)

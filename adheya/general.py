@@ -4,13 +4,16 @@
 
 	Numeric Entry
 	Text Entry
+	List, Combo, Radio Array Selection
 	File Selection
+	Color Picking
 """
 
 import os
 from enum import Enum
-from dearpygui import core, simple
+from dearpygui import core
 from adheya import DPGObject
+from adheya.layout import Group
 
 class ValueType(Enum):
 	Integer = 0
@@ -21,28 +24,19 @@ class InputType(Enum):
 	Drag = 1
 	Slider = 2
 
+# ================ INPUT ================ #
+
 class FileHandle(DPGObject):
-	def __init__(self, guid, **kw):
-		super().__init__(guid, **kw)
+	def __init__(self, parent, **kw):
+		super().__init__(parent, **kw)
 
 		self.__data = []
 		self.__path = ""
 		self.__ext = kw.pop('extensions', '.*')
 
-		self.__idGroup = f'{self.guid}-group'
-		self.__idPicker = f'{self.guid}-picker'
-
 		cofd = core.open_file_dialog
-		with simple.group(self.__idGroup, width=32):
-			core.add_button(self.__idPicker, label='load', callback=lambda: cofd(self.__load, extensions=self.__ext))
-
-	@property
-	def group(self):
-		return self.__idGroup
-
-	@property
-	def picker(self):
-		return self.__idPicker
+		g = Group(self, width=32)
+		Button(g, label='load', callback=lambda: cofd(self.__load, extensions=self.__ext))
 
 	@property
 	def path(self):
@@ -55,7 +49,6 @@ class FileHandle(DPGObject):
 			return
 		if os.path.exists(path):
 			self.__path = path
-
 		# callback
 		self.load()
 
@@ -64,10 +57,11 @@ class FileHandle(DPGObject):
 		...
 
 class FileImage(FileHandle):
-	def __init__(self, guid, zoomLevel=0, **kw):
+	def __init__(self, parent, zoomLevel=0, **kw):
 		self.__min = kw.pop('pmin', [0, 0])
 		self.__max = kw.pop('pmax', [0, 0])
-		super().__init__(guid, **kw)
+		super().__init__(parent, **kw)
+		print(parent, self.parent)
 		self.__idCanvas = f'{self.guid}-canvas'
 		core.add_drawing(self.__idCanvas, width=self.__max[0], height=self.__max[1], parent=self.parent.guid)
 		self.__data = []
@@ -86,8 +80,8 @@ class FileImage(FileHandle):
 			core.draw_image(self.__idCanvas, self.path, pmin=self.__min, pmax=self.__max)
 
 class Numeric(DPGObject):
-	def __init__(self, guid, valueType: ValueType=ValueType.Integer, inputType: InputType=InputType.Direct, **kw):
-		super().__init__(guid, **kw)
+	def __init__(self, parent, valueType: ValueType=ValueType.Integer, inputType: InputType=InputType.Direct, **kw):
+		super().__init__(parent, **kw)
 		kw['parent'] = self.parent.guid
 
 		self.__inputType = inputType
@@ -109,34 +103,63 @@ class Numeric(DPGObject):
 	def valueType(self):
 		return self.__valueType
 
-class InputText(DPGObject):
-	...
+class NumericSlider(Numeric):
+	def __init__(self, parent, valueType: ValueType=ValueType.Integer, **kw):
+		kw.pop('inputType', None)
+		super().__init__(parent, valueType, InputType.Slider, **kw)
 
+class NumericDrag(Numeric):
+	def __init__(self, parent, valueType: ValueType=ValueType.Integer, **kw):
+		kw.pop('inputType', None)
+		super().__init__(parent, valueType, InputType.Drag, **kw)
 
+class NumericFloat(Numeric):
+	def __init__(self, parent, inputType: InputType=InputType.Direct, **kw):
+		kw.pop('valueType', None)
+		super().__init__(parent, ValueType.Float, inputType, **kw)
 
-class Button(DPGObject):
-	...
+class NumericFloatSlider(Numeric):
+	def __init__(self, parent, **kw):
+		kw.pop('valueType', None)
+		kw.pop('inputType', None)
+		super().__init__(parent, ValueType.Float, InputType.Slider, **kw)
 
-class ButtonArrow(DPGObject):
-	...
+class NumericFloatDrag(Numeric):
+	def __init__(self, parent, **kw):
+		kw.pop('valueType', None)
+		kw.pop('inputType', None)
+		super().__init__(parent, ValueType.Float, InputType.Drag, **kw)
 
-class ColorButton(DPGObject):
-	...
+class Text(DPGObject):
+	_CMD = core.add_input_text
 
 class ColorPicker(DPGObject):
-	...
+	_CMD = core.add_color_picker4
+
+# ================ TRIGGER ================ #
+
+class Button(DPGObject):
+	_CMD = core.add_button
+
+class ColorButton(DPGObject):
+	_CMD = core.add_color_button
+
+class ImageButton(DPGObject):
+	_CMD = core.add_image_button
 
 class Checkbox(DPGObject):
-	...
+	_CMD = core.add_checkbox
 
-class Selectable(DPGObject):
-	...
+# ================ SELECTION ================ #
 
 class RadioButtons(DPGObject):
-	...
+	_CMD = core.add_radio_button
 
 class ListBox(DPGObject):
-	...
+	_CMD = core.add_listbox
 
 class Combo(DPGObject):
-	...
+	_CMD = core.add_combo
+
+class Selectable(DPGObject):
+	_CMD = core.add_selectable

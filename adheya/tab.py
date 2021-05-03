@@ -1,16 +1,13 @@
 """."""
 
 from dearpygui import core
-from adheya import DPGObject, DPGWrap
+from adheya import DPGObject
 
-@DPGWrap(core.add_tab_bar)
 class TabBar(DPGObject):
-	...
+	_CMD = core.add_tab_bar
 
-@DPGWrap(core.add_tab)
 class Tab(DPGObject):
-	...
+	_CMD = core.add_tab
 
-@DPGWrap(core.add_tab_button)
 class TabButton(DPGObject):
-	...
+	_CMD = core.add_tab_button

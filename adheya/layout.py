@@ -1,11 +1,10 @@
 """."""
 
 from dearpygui import core
-from adheya import DPGObject, DPGWrap
+from adheya import DPGObject
 
-@DPGWrap(core.add_dummy)
 class Dummy(DPGObject):
-	...
+	_CMD = core.add_radio_button
 
 class ContextGroup(DPGObject):
 	def __enter__(self):
@@ -26,18 +25,20 @@ class Outline(DPGObject):
 	def __exit__(self, *arg, **kw):
 		core.unindent(name=self.label)
 
-@DPGWrap(core.add_group)
 class Group(ContextGroup):
-	...
+	def __init__(self, parent, **kw):
+		super().__init__(parent, **kw)
+		kw['parent'] = self.parent.guid
+		core.add_group(self.guid, **kw)
+		core.end()
 
-@DPGWrap(core.add_spacing)
 class SpacingVertical(DPGObject):
-	...
+	_CMD = core.add_spacing
+	_GUID = False
 
-@DPGWrap(core.add_same_line)
 class SpacingHorizontal(DPGObject):
-	...
+	_CMD = core.add_same_line
+	_GUID = False
 
-@DPGWrap(core.add_separator)
 class Separator(DPGObject):
-	...
+	_CMD = core.add_separator

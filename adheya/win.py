@@ -1,36 +1,29 @@
 """."""
 
 import re
-from enum import Enum
 from dearpygui import core, simple
-from adheya.theme import ThemeManager
-from adheya import DPGObject, Singleton, DPGWrap
-
-class MenuEntry(Enum):
-	Menu = 0
-	Item = 1
+from adheya import DPGObject
 
 class Window(DPGObject):
-	def __init__(self, guid=None, **config):
-		super().__init__(guid, **config)
-		with simple.window(self.guid, **config):
-			self.__menubar = MenuBar(None, parent=self.guid) if config['menubar'] else None
+	def __init__(self, **kw):
+		super().__init__(None, **kw)
+		with simple.window(self.guid, **kw):
+			self.__menubar = MenuBar(self.guid) if kw.get('menubar', None) else None
 
 	@property
 	def menubar(self):
 		return self.__menubar
 
-class WindowMain(Window, metaclass=Singleton):
-	def __init__(self, name=None, **config):
-		config['menubar'] = config.get('menubar', True)
-		super().__init__(name, **config)
+class WindowMain(Window):
+	"""."""
+	def __init__(self, **kw):
+		kw['menubar'] = kw.get('menubar', True)
+		super().__init__(**kw)
 
 		self.__cache = {}
 
 		# close event as well -- can register for "close"/"exit"
 		core.set_exit_callback(self.__exit)
-
-		self.__theme = ThemeManager(theme="Jovian_Grey")
 		self.__cacheRefresh()
 
 	def __cacheRefresh(self):
@@ -105,51 +98,54 @@ class WindowMain(Window, metaclass=Singleton):
 		return ret
 
 class MenuBar(DPGObject):
-	def __init__(self, name, **kw):
-		super().__init__(name, **kw)
+	def __init__(self, parent, *arg, **kw):
+		super().__init__(parent, *arg, **kw)
 		self.__menu = {}
 		kw['parent'] = self.parent.guid
-		core.add_menu_bar(self.guid, **kw)
+		core.add_menu_bar(self.guid, *arg, **kw)
 		core.end()
 
 	def add(self, name, **kw):
 		m = self.__menu.get(name, None)
 		if m is None:
-			kw['parent'] = self.guid
-			m = Menu(name, **kw)
+			kw['label'] = kw.get('name', name)
+			m = Menu(self.guid, **kw)
 			self.__menu[name] = m
 		else:
-			print(f"{name} already exists")
+			core.log_error(f"{name} already exists")
 		return m
 
 class Menu(DPGObject):
-	def __init__(self, name, parent, **kw):
-		kw['parent'] = parent
-		super().__init__(name, **kw)
+	def __init__(self, parent, *arg, **kw):
+		super().__init__(parent, *arg, **kw)
 		self.__struct = {}
-
-		with simple.menu(self.guid, **kw):
+		kw['parent'] = self.parent.guid
+		with simple.menu(self.guid, *arg, **kw):
 			...
 
-	def add(self, name, entryType: MenuEntry=MenuEntry.Item, **kw):
+	def __add(self, name, cmd, **kw):
 		m = self.__struct.get(name, None)
 		if m is None:
 			kw.pop('parent', None)
-			guid = f'{self.guid}-{name}'
 			kw['label'] = kw.get('label', name)
-			cmd = [Menu, MenuItem][entryType.value]
-			m = cmd(guid, self.guid, **kw)
+			cmd(self, **kw)
 			self.__struct[name] = m
 		else:
-			print(f"{name} already exists")
+			core.log_error(f"{name} already exists")
 		return m
 
-class MenuItem(DPGObject):
-	def __init__(self, name, parent, **kw):
-		kw['parent'] = parent
-		super().__init__(name, **kw)
-		core.add_menu_item(name, **kw)
+	def addItem(self, name, **kw):
+		return self.__add(name, MenuItem, **kw)
 
-@DPGWrap(core.add_popup)
+	def addMenu(self, name, **kw):
+		return self.__add(name, Menu, **kw)
+
+class MenuItem(DPGObject):
+	def __init__(self, parent, *arg, **kw):
+		super().__init__(parent, *arg, **kw)
+		kw['parent'] = self.parent.guid
+		kw['label'] = self.label
+		core.add_menu_item(self.guid, *arg, **kw)
+
 class Popup(DPGObject):
-	...
+	_CMD = core.add_popup

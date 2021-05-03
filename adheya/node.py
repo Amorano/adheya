@@ -7,9 +7,11 @@ from enum import Enum
 from importlib import import_module
 from inspect import isclass
 from dearpygui import core, simple
-from adheya import DPGObject, CallbackType
+from adheya import DPGObject, CallbackType, Registry
 from adheya.feedback import Label
-from adheya.general import FileHandle, FileImage, Numeric, InputType
+from adheya.general import NumericSlider, Button
+from adheya.layout import Group, SpacingVertical
+from adheya.win import Window
 
 def fileDotName(file: str, root: str) -> str:
 	path, _ = os.path.splitext(file)
@@ -17,7 +19,7 @@ def fileDotName(file: str, root: str) -> str:
 	name = name.replace(os.sep, '.').replace('__init__', '')
 	return name.strip('.')
 
-class PlugType(Enum):
+class PlugDirection(Enum):
 	Input = 0
 	Output = 1
 	Static = 2
@@ -26,68 +28,27 @@ class PlugType(Enum):
 	def filter(node):
 		config = core.get_item_configuration(node)
 		if config.get('output', None):
-			return PlugType.Output
+			return PlugDirection.Output
 		if config.get('static', None):
-			return PlugType.Static
-		return PlugType.Input
-
-class AttributeType(Enum):
-	Bool = 0
-	Int1 = 1
-	Int2 = 2
-	Int3 = 3
-	Int4 = 4
-	Float1 = 5
-	Float2 = 6
-	Float3 = 7
-	Float4 = 8
-	Color3 = 9
-	Color4 = 10
-	Pick3 = 11
-	Pick4 = 12
-	String = 13
-	Button = 14
-	Label = 15
-	FileHandle = 16
-	FileImage = 17
+			return PlugDirection.Static
+		return PlugDirection.Input
 
 class NodeAttribute(DPGObject):
-	_ATTRMAP = {
-		AttributeType.Bool: core.add_checkbox,
-		AttributeType.Int1: core.add_input_int,
-		AttributeType.Int2: core.add_input_int2,
-		AttributeType.Int3: core.add_input_int3,
-		AttributeType.Int4: core.add_input_int4,
-		AttributeType.Float1: core.add_input_float,
-		AttributeType.Float2: core.add_input_float2,
-		AttributeType.Float3: core.add_input_float3,
-		AttributeType.Float4: core.add_input_float4,
-		AttributeType.Color3: core.add_color_edit3,
-		AttributeType.Color4: core.add_color_edit4,
-		AttributeType.Pick3: core.add_color_picker3,
-		AttributeType.Pick4: core.add_color_picker4,
-		AttributeType.String: core.add_input_text,
-		AttributeType.Button: core.add_button,
-		AttributeType.Label: Label,
-		AttributeType.FileHandle: FileHandle,
-		AttributeType.FileImage: FileImage
-	}
-
-	def __init__(self, parent, plug, plugType, attr, attrType, **kw):
-		kw['parent'] = parent
-		super().__init__(plug, **kw)
+	def __init__(self, parent, plug, plugDir, attr, attrType, **kw):
+		super().__init__(parent, **kw)
 		self.__type = attrType
 		self.__attr = attr
-		self.__plugType = plugType
+		self.__plugDir = plugDir
 
-		output = plugType == PlugType.Output
-		static = plugType == PlugType.Static
+		output = plugDir == PlugDirection.Output
+		static = plugDir == PlugDirection.Static
 
-		with simple.node_attribute(plug, parent=parent, output=output, static=static):
-			# mapped command to create plug inside this attribute wrapper
-			kw['parent'] = self.guid
-			kw['width'] = kw.get('width', 80)
-			self.__widget = self._ATTRMAP[attrType](attr, **kw)
+		core.add_node_attribute(plug, parent=self.parent.guid, output=output, static=static)
+		# mapped command to create plug inside this attribute wrapper
+		kw['width'] = kw.get('width', 80)
+		kw['label'] = kw.get('label', attr)
+		self.__widget = attrType(plug, **kw)
+		core.end()
 
 	@property
 	def attrType(self):
@@ -98,15 +59,15 @@ class NodeAttribute(DPGObject):
 		return self.__attr
 
 	@property
-	def plugType(self):
-		return self.__plugType
+	def plugDir(self):
+		return self.__plugDir
 
 	def event(self, event, *arg, **kw):
 		if self.__widget:
 			self.__widget.event(event, *arg, **kw)
 
 class Node(DPGObject):
-	def __init__(self, guid, **kw):
+	def __init__(self, parent, **kw):
 		"""Everything.
 
 		[Node_index]-attr.[index]
@@ -129,11 +90,13 @@ class Node(DPGObject):
 				"+": []
 			}
 		"""
-		super().__init__(guid, **kw)
+		super().__init__(parent, **kw)
 
 		self.__attrInput = {}
 		self.__attrOutput = {}
 		self.__attrStatic = {}
+
+		kw['parent'] = self.parent.guid
 
 		with simple.node(self.guid, **kw):
 			...
@@ -145,25 +108,25 @@ class Node(DPGObject):
 				cb.event(event, *arg, **kw)
 
 	def calculate(self):
-		"""Propigates the value based on depth first."""
+		"""Propagates the value based on depth first."""
 		return True
 
-	def attrAdd(self, guid, attrType: AttributeType, plugType: PlugType=PlugType.Input, **kw) -> NodeAttribute:
-		if guid in self.__attrOutput or guid in self.__attrInput or guid in self.__attrStatic:
-			raise Exception(f"Attribute {guid} already exists")
+	def attrAdd(self, name, attrType, plugDir: PlugDirection=PlugDirection.Input, **kw) -> NodeAttribute:
+		if self.guid in self.__attrOutput or self.guid in self.__attrInput or self.guid in self.__attrStatic:
+			raise Exception(f"Attribute {name} already exists")
 
-		attr = [self.__attrInput, self.__attrOutput, self.__attrStatic][plugType.value]
+		attr = [self.__attrInput, self.__attrOutput, self.__attrStatic][plugDir.value]
 
 		# the outside wrapper and thing which DPG connects
-		plugname = f"{self.guid}-{guid}"
+		plugname = f"{self.guid}-{name}"
 
 		# the actual attribute where the value is held
 		attrname = f"{plugname}.attr"
-		kw['label'] = kw.get('label', guid)
 		kw.pop('static', None)
 		kw.pop('output', None)
 		kw.pop('parent', None)
-		na = NodeAttribute(self.guid, plugname, plugType, attrname, attrType, **kw)
+		kw['label'] = kw.get('label', name)
+		na = NodeAttribute(self.guid, plugname, plugDir, attrname, attrType, **kw)
 		attr[attrname] = na
 		return na
 
@@ -181,14 +144,10 @@ class Node(DPGObject):
 			print(i)
 
 class NodeZoom(Node):
-	def __init__(self, guid, **kw):
-		super().__init__(guid, **kw)
-		self.__idGroup = f"{self.guid}-group"
-		with simple.group(self.__idGroup, parent=self.guid):
-			...
-
-		self.__slider = Numeric(f"{self.guid}-zoom", label='', parent=self.__idGroup, width=1,
-			inputType=InputType.Slider, default_value=1, min_value=0, max_value=3, clamped=True,
+	def __init__(self, parent, **kw):
+		super().__init__(parent, **kw)
+		self.__slider = NumericSlider(self, label='', width=1,
+			default_value=1, min_value=0, max_value=3, clamped=True,
 			callback=lambda s, d: self.__zoom())
 
 		self.register(CallbackType.Resize, self.__resize)
@@ -197,7 +156,8 @@ class NodeZoom(Node):
 	def __resize(self, sender, data):
 		w, _ = self.parent.size
 		w = int(min(max(w, 16), 256))
-		core.configure_item(self.__idGroup, width=w)
+		self.__slider.width = w
+		# core.configure_item(self.__idGroup, width=w)
 
 	def __zoom(self):
 		self.event('zoom', self.__slider.value)
@@ -210,91 +170,81 @@ class NodeEditor(DPGObject):
 
 	_CYCLECHECK = True
 
-	def __init__(self, parent, **kw):
-		kw['parent'] = parent
-		super().__init__(None, **kw)
+	def __init__(self, parent, *arg, **kw):
+		super().__init__(parent, *arg, **kw)
 
 		# command factory to make node *
+		self.__inspector = None
 		self.__nodeMap = {}
 		self.__nodes = {}
 		self.__links = {}
 		self.__root = os.path.dirname(os.path.abspath(__file__))
+		self.__paneRight = Window(no_title_bar=True)
 
 		m = self.menubar.add('file')
-		m.add('load', callback=self.__load)
-		m.add('save', callback=self.__save)
+		m.addItem('load', callback=self.__load)
+		m.addItem('save', callback=self.__save)
 
 		with simple.node_editor(self.guid, parent=self.parent.guid, link_callback=self.__link, delink_callback=self.__delink):
 			...
 
-		core.add_same_line(parent=self.parent.guid)
-
-		self.__paneright = f'{self.guid}-paneright'
 		kw['no_close'] = kw['no_collapse'] = kw['no_title_bar'] = kw['no_focus_on_appearing'] = True
 		kw['autosize'] = False
 		kw.pop('parent', None)
-		with simple.window(self.__paneright, **kw):
-			...
-
-		# placeholder for all context menu popups since we cant figure out what things we are over?
-		self.__idNodeList = f"{self.guid}-nodelist"
-		with simple.popup(self.guid, self.__idNodeList, parent=self.guid):
-			...
 
 		self.libImportDir(f'{self.__root}/nodeLib')
-
 		self.register(CallbackType.Resize, self.__resize)
 		self.register(CallbackType.MouseRelease, self.__resize)
 
 	def __resize(self, sender, data):
+		if self.__paneRight is None:
+			return
 		w, h = core.get_main_window_size()
-		width = core.get_item_configuration(self.__paneright)["width"]
+		width = self.__paneRight.width
 		width = min(max(width, 0), int(w * .25))
-		core.configure_item(self.__paneright, height=h - 25, width=width, y_pos=-1, x_pos=w - width + 25)
+		self.__paneRight.configure(height=h - 25, width=width, y_pos=-1, x_pos=w - width + 25)
 		nodes = core.get_selected_nodes(self.guid) or []
 		if len(nodes) == 0:
-			simple.hide_item(self.__paneright)
+			self.__paneRight.show = False
 			return
-		simple.show_item(self.__paneright)
+		self.__paneRight.show = True
 		nodes = [self.__nodes[n] for n in nodes]
 
-		DPGObject.delete("inspector")
-		with simple.group("inspector", parent=self.__paneright):
-			for n in nodes:
-				inputs = n.inputs
-				inspector = f"spect-{n}"
-				# each widget...
-				with simple.group(inspector, parent="inspector"):
-					core.add_text(n.label)
-					for guid, attr in inputs.items():
-						label = f"{inspector}-{attr.label}"
-						val = str(core.get_value(guid))
-						Label(label, label=attr.label, parent=inspector, default_value=val)
+		if self.__inspector:
+			self.__inspector.delete()
+		self.__inspector = Group(self.__paneRight)
 
-				for _ in range(5):
-					core.add_spacing()
+		for n in nodes:
+			sub = Group(self.__inspector)
+			Label(sub, default_value=n.label)
+			for guid, _ in n.inputs.items():
+				val = str(core.get_value(guid))
+				Label(sub, default_value=val)
+
+			for _ in range(7):
+				SpacingVertical(self.__inspector)
 
 	def __nodelistRefresh(self):
-		children = core.get_item_children(self.__idNodeList)
-		for item in children or []:
-			core.delete_item(item)
+		nodeList = f"{self.guid}-nodelist"
+		del Registry[nodeList]
+
+		kw = {'width': 60, 'height': 15, 'callback': self.__nodeAdd}
+		with simple.popup(self.guid, nodeList):
+			...
 
 		for k in sorted(self.registryNodes):
-			core.add_text(k, default_value=k, parent=self.__idNodeList)
+			Label(nodeList, default_value=k)
 			for obj in self.__nodeMap[k]:
 				name = getattr(obj, '_name', obj.__name__)
-				core.add_button(obj.__name__, parent=self.__idNodeList,
-					label=name, width=60, height=15,
-					callback=self.__nodeAdd, callback_data=obj)
+				Button(nodeList, label=name, callback_data=obj, **kw)
 
 	def __nodeAdd(self, sender, obj):
-		core.close_popup(self.__idNodeList)
 		size = core.get_item_rect_min(sender)
 		# weak sauce hardcoded offset
 		x = max(0, int(size[0]) - 140)
 		y = max(0, int(size[1]) - 40)
 		label = getattr(obj, '_name', obj.__class__.__name__)
-		node = obj(None, parent=self.guid, label=label, x_pos=x, y_pos=y)
+		node = obj(self.guid, label=label, x_pos=x, y_pos=y)
 		self.__nodes[node.guid] = node
 
 	def __delink(self, sender, data):
@@ -306,7 +256,8 @@ class NodeEditor(DPGObject):
 		try:
 			data = self.__links[left]
 		except Exception as e:
-			core.log_error(str(e))
+			print(e)
+			core.log_error(e)
 		else:
 			if right in data:
 				data.remove(right)
@@ -373,19 +324,7 @@ class NodeEditor(DPGObject):
 	def nodes(self):
 		return self.__nodes.copy()
 
-	# ============================================
-	# >> NODE GRAPH
-	# ============================================
-	def dfs(self, v, visited):
-		"""Depth First Search."""
-		# Mark current node visited
-		visited.add(v)
-
-		# Recurse all the vertices adjacent to this vertex
-		for neighbour in self.__links.get(v, []):
-			if neighbour not in visited:
-				self.dfs(neighbour, visited)
-
+	@property
 	def all(self):
 		"""Transverse the entire graph."""
 		# Store all visited vertices
@@ -395,6 +334,19 @@ class NodeEditor(DPGObject):
 			if vertex not in visited:
 				self.dfs(vertex, visited)
 		return visited
+
+	# ============================================
+	# >> NODE GRAPH
+	# ============================================
+	def dfs(self, v, visited):
+		"""Depth First Search."""
+		# Mark current node visited
+		visited.add(v)
+
+		# Recurse all the vertices adjacent to this vertex
+		for neighbor in self.__links.get(v, []):
+			if neighbor not in visited:
+				self.dfs(neighbor, visited)
 
 	# ============================================
 	# >> NODE DATABASE
