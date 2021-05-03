@@ -1,4 +1,4 @@
-# Adheya: A thing placed in another or depending upon another
+# Adheya: A thing placed in or depending upon another
 Simple lightweight Object Oriented Wrapping for [Dear PyGUI](https://github.com/hoffstadt/DearPyGui).
 
 The core example for this library is built around the DearPyGUI Node Graph Editor.
@@ -21,7 +21,7 @@ The core example for this library is built around the DearPyGUI Node Graph Edito
 ## Installation
 
 **Requirements**
-- Python 3.6 64-bit or greater
+- Python 3.8 64-bit or greater
 - [dearpygui 0.6.x->](https://github.com/hoffstadt/DearPyGui)
 
 You can install *Dear PyGUI* from [TestPyPI](https://test.pypi.org/project/dearpygui/):
