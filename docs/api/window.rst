@@ -1,5 +1,5 @@
-Window
-======
+Windows
+=======
 
 .. automodule:: adheya.win
 
@@ -36,13 +36,13 @@ Main Window
 	:undoc-members:
 	:special-members: __exit__
 
+
 MenuBar
 -------
 
 .. autoclass:: MenuBar
 	:members:
 	:undoc-members:
-	:special-members:
 	:special-members: __exit__
 
 .. autoclass:: Menu

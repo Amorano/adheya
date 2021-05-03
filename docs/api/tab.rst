@@ -24,9 +24,11 @@ TabBar
     :undoc-members:
     :special-members: __exit__
 
+
 .. autoclass:: Tab
     :members:
     :undoc-members:
+
 
 .. autoclass:: TabButton
     :members:

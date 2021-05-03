@@ -1,5 +1,5 @@
-Plot
-====
+Graphs
+======
 
 .. automodule:: adheya.plot
 

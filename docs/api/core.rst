@@ -12,10 +12,9 @@ Core
     :nosignatures:
 
     DPGObject
-    Callbacks
+    Callback
     CallbackType
-    Singleton
-    DPGWrap
+    Registry
 
 
 DPGObject
@@ -39,10 +38,10 @@ DPGObject
         dpgType
 
 
-Callbacks
+Callback
 ---------
 
-.. autoclass:: Callbacks
+.. autoclass:: Callback
     :members:
     :undoc-members:
 
@@ -55,17 +54,9 @@ CallbackType
     :undoc-members:
 
 
-Singleton
----------
+Registry
+--------
 
-.. autoclass:: Singleton
-    :members:
-    :undoc-members:
-
-
-DPGWrap
--------
-
-.. autoclass:: DPGWrap
+.. autoclass:: Registry
     :members:
     :undoc-members:

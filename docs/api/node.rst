@@ -14,7 +14,7 @@ Nodes
     Node
     NodeZoom
     NodeAttribute
-    PlugType
+    PlugDirection
     NodeEditor
 
 Node
@@ -37,7 +37,7 @@ NodeAttribute
     :members:
     :undoc-members:
 
-.. autoclass:: PlugType
+.. autoclass:: PlugDirection
     :members:
     :undoc-members:
 

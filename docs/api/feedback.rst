@@ -12,13 +12,19 @@ Feedback
     :nosignatures:
 
     Label
+    Field
     ProgressBar
 
 
-Feedback
---------
+Reporting
+---------
 
 .. autoclass:: Label
+    :members:
+    :undoc-members:
+
+
+.. autoclass:: Field
     :members:
     :undoc-members:
 

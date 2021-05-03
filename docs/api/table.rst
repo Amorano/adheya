@@ -1,5 +1,5 @@
-Table
-=====
+Tables
+======
 
 .. automodule:: adheya.table
 
@@ -12,6 +12,7 @@ Table
     :nosignatures:
 
     Table
+
 
 Table
 -----

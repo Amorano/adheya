@@ -95,11 +95,19 @@ Most widgets can also be imported from the :mod:`adheya.widget` module.
 	adheya.draw.Canvas
 
 .. rubric:: Tab
+
+.. autosummary::
+	:nosignatures:
+
 	adheya.tab.TabBar
-	adheya.tab.TabItem
+	adheya.tab.Tab
 	adheya.tab.TabButton
 
 .. rubric:: Table
+
+.. autosummary::
+	:nosignatures:
+
 	adheya.table.Table
 
 .. rubric:: Tree
@@ -111,7 +119,7 @@ Most widgets can also be imported from the :mod:`adheya.widget` module.
 	adheya.tree.TreeNode
 	adheya.tree.TreeNodeHeader
 
-.. rubric:: Plot
+.. rubric:: Graph
 
 .. autosummary::
 	:nosignatures:

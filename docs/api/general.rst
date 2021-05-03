@@ -19,16 +19,13 @@ General
     NumericFloatDrag
     Text
     ColorPicker
-
     Button
     ColorButton
-
     Checkbox
     RadioButtons
     ListBox
     Combo
     Selectable
-
     FileHandle
     FileImage
 
