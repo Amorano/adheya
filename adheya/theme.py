@@ -2,22 +2,24 @@
 
 import json
 import os.path
-from dearpygui import core, simple
+from dearpygui import core
+from adheya.win import Window
+from adheya.general import ListBox
 
-class ThemeManager():
+class ThemeManager(Window):
 	def __init__(self, theme=None, root=None):
+		super().__init__(label='Theme Manager', autosize=True)
+		self.__theme = {}
 		self.__current = theme
+
 		if root is None:
 			root = os.path.dirname(os.path.realpath(__file__))
 			root = f'{root}/theme.json'
 		self.__load(root)
 
-		with simple.window("theme", autosize=True):
-			themes = self.themes
-			core.add_listbox("themes", label="",
-				items=themes,
-				num_items=len(themes),
-				callback=self.__themeChange)
+		themes = self.themes
+		ListBox(self, label="", items=self.themes, num_items=len(themes),
+			callback=self.__themeChange)
 
 		self.apply(theme or self.__current)
 
@@ -45,7 +47,8 @@ class ThemeManager():
 
 	def __str__(self):
 		size = len(self.__theme.keys())
-		return f"[{self.__current}] {size} themes"
+		current = self.__current or "None"
+		return f"[{current}] {size} themes"
 
 	@property
 	def current(self):
@@ -54,7 +57,7 @@ class ThemeManager():
 
 	@property
 	def themes(self):
-		return sorted(self.__theme.keys())
+		return list(sorted(self.__theme.keys()))
 
 	def apply(self, who):
 		theme = self.__theme.get(who, None)
@@ -95,3 +98,7 @@ class ThemeManager():
 				else:
 					meth(v)
 		self.__current = who
+
+if __name__ == "__main__":
+	window = ThemeManager()
+	window.open()

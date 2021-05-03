@@ -66,6 +66,7 @@ class Registry(object):
 	"""Where all DPG objects are tracked."""
 	def __init__(self):
 		self.__registry = {}
+		self.__mainWindow = None
 
 	def __contains__(self, val):
 		return val in self.__registry
@@ -76,7 +77,13 @@ class Registry(object):
 	def __setitem__(self, guid, obj):
 		# must exist inside the DPG space if we are tracking
 		if guid not in core.get_all_items():
-			core.log
+			core.log_error(f"{guid} not in DPG database.")
+			return
+		print(core.get_item_type(guid))
+		if core.get_item_type(guid) == 'Main Window':
+			if self.__mainWindow:
+				raise Exception("only allowed one main window per dpg instance")
+			self.__mainWindow = obj
 		self.__registry[guid] = obj
 		return obj
 
@@ -86,6 +93,10 @@ class Registry(object):
 				del Registry[child]
 			core.delete_item(guid)
 		return self.__registry.pop(guid, None)
+
+	@property
+	def main(self):
+		return self.__mainWindow
 
 	def find(self, guid):
 		"""Search DPG for the item."""
@@ -105,11 +116,12 @@ Registry = Registry()
 class DPGObject(object):
 	# the DPG routed command, if any
 	_CMD = None
-	# if this widget needs to pass its guid to the DPG contructor
+	# if this widget needs to pass its guid to the DPG constructor
 	_GUID = True
 
 	def __init__(self, parent, *arg, guid=None, **kw):
 		# register any parent that might not be, and fixate mine.
+		parent = Registry.main or parent
 		self.__guid = name = guid = guid or self.__class__.__name__
 		parent = Registry.find(parent)
 
@@ -143,7 +155,7 @@ class DPGObject(object):
 			try:
 				return core.get_item_configuration(self.__guid)[attr]
 			except Exception as _:
-				ret = f"missing {self}.{attr}"
+				ret = f"missing {self.__guid}.{attr}"
 				core.log_error(ret)
 
 	def __setattr__(self, attr, value):

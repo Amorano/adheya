@@ -2,7 +2,7 @@
 
 import re
 from dearpygui import core, simple
-from adheya import DPGObject
+from adheya import DPGObject, Registry
 
 class Window(DPGObject):
 	def __init__(self, **kw):
@@ -13,6 +13,12 @@ class Window(DPGObject):
 	@property
 	def menubar(self):
 		return self.__menubar
+
+	def open(self):
+		if Registry.main is None:
+			core.start_dearpygui(primary_window=self.guid)
+		else:
+			self.show = True
 
 class WindowMain(Window):
 	"""."""
