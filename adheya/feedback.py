@@ -1,31 +1,12 @@
 """."""
 
+from time import sleep
 from queue import Queue
 from threading import Thread
 from dearpygui import core
 from adheya import DPGObject
 from adheya.layout import Group
 from adheya.general import Text
-
-class ThreadProgress(Thread):
-	"""Threaded progress bar widget."""
-	def __init__(self, progressBar, queue, callback=None):
-		super().__init__()
-		self.daemon = True
-		self.__q = queue
-		self.__progressBar = progressBar
-		self.__callback = callback
-
-	def run(self):
-		while self.is_alive:
-			val, overlay = self.__q.get()
-			if val is None:
-				break
-			core.configure_item(self.__progressBar.guid, overlay=overlay)
-			core.set_value(self.__progressBar.guid, val)
-
-		if self.__callback:
-			self.__callback()
 
 class Label(DPGObject):
 	_CMD = core.add_text
@@ -53,6 +34,49 @@ class Field(DPGObject):
 	@value.setter
 	def value(self, val):
 		self.__value = val
+
+class ThreadUpdate(Thread):
+	"""Thread that updates a set of widgets from a Q."""
+	def __init__(self, queue: Queue, callback=None):
+		super().__init__()
+		self.daemon = True
+		self.__q = queue
+		self.__callback = callback
+		"""Where to yell after the Q is dry."""
+
+	def run(self):
+		while self.is_alive:
+			# Should be a dict with values to replace
+			widgets: dict = self.__q.get()
+			if widgets is None:
+				break
+			for w, v in widgets.items():
+				w.value = v
+			sleep(0.01)
+
+		if self.__callback:
+			self.__callback()
+
+class ThreadProgress(Thread):
+	"""Threaded progress bar widget."""
+	def __init__(self, progressBar, queue: Queue, callback=None):
+		super().__init__()
+		self.daemon = True
+		self.__q = queue
+		self.__progressBar = progressBar
+		self.__callback = callback
+
+	def run(self):
+		while self.is_alive:
+			val, overlay = self.__q.get()
+			if val is None:
+				break
+			self.__progressBar.overlay = overlay
+			self.__progressBar.value = val
+			sleep(0.01)
+
+		if self.__callback:
+			self.__callback()
 
 class ProgressBar(DPGObject):
 	def __init__(self, parent, **kw):
