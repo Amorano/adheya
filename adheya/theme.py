@@ -2,8 +2,7 @@
 
 import json
 import os.path
-from dearpygui import core, simple
-import dearpygui
+from dearpygui import core
 from adheya.win import Window
 from adheya.general import ListBox
 

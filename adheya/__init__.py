@@ -204,8 +204,7 @@ class DPGObject(object):
 
 	@value.setter
 	def value(self, value):
-		if value != self.value:
-			core.set_value(self.__guid, value)
+		core.set_value(self.__guid, value)
 
 	@property
 	def size(self):

@@ -115,6 +115,5 @@ class ProgressBar(DPGObject):
 
 	def start(self):
 		self.show = True
-		# simple.show_item(self.__guid)
 		self.__worker = ThreadProgress(self, self.__q, callback=lambda: self.__callback(self.__guid))
 		self.__worker.start()

@@ -1,14 +1,15 @@
 """."""
 
 import re
-from dearpygui import core, simple
+from dearpygui import core
 from adheya import DPGObject, Registry
 
 class Window(DPGObject):
 	def __init__(self, **kw):
 		super().__init__(None, **kw)
-		with simple.window(self.guid, **kw):
-			self.__mainbar = MenuBar(self)
+		core.add_window(self.guid, **kw)
+		self.__mainbar = MenuBar(self)
+		core.end()
 
 	@property
 	def mainbar(self):
@@ -122,12 +123,12 @@ class MenuBar(DPGObject):
 		return self.__menu[item]
 
 class Menu(DPGObject):
-	def __init__(self, parent, *arg, **kw):
-		super().__init__(parent, *arg, **kw)
+	def __init__(self, parent, **kw):
+		super().__init__(parent,**kw)
 		self.__struct = {}
 		kw['parent'] = self.parent.guid
-		with simple.menu(self.guid, *arg, **kw):
-			...
+		core.add_menu(self.guid, **kw)
+		core.end()
 
 	def __add(self, name, cmd, **kw):
 		m = self.__struct.get(name, None)

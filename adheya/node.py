@@ -6,9 +6,9 @@ import json
 from enum import Enum
 from importlib import import_module
 from inspect import isclass
-from dearpygui import core, simple
+from dearpygui import core
 from adheya import DPGObject, CallbackType, Registry
-from adheya.feedback import Label
+from adheya.feedback import Label, Field
 from adheya.general import NumericSlider, Button
 from adheya.layout import Group, SpacingVertical
 from adheya.win import Window
@@ -98,8 +98,8 @@ class Node(DPGObject):
 
 		kw['parent'] = self.parent.guid
 
-		with simple.node(self.guid, **kw):
-			...
+		core.add_node(self.guid, **kw)
+		core.end()
 
 	def event(self, event, *arg, **kw):
 		"""Cast the event to all the attributes."""
@@ -132,11 +132,11 @@ class Node(DPGObject):
 
 	@property
 	def outputs(self):
-		return self.__attrOut.copy()
+		return self.__attrOut.keys()
 
 	@property
 	def inputs(self):
-		return self.__attrInput.copy()
+		return self.__attrInput.keys()
 
 	@property
 	def dump(self):
@@ -185,8 +185,8 @@ class NodeEditor(DPGObject):
 		m.addItem('load', callback=self.__load)
 		m.addItem('save', callback=self.__save)
 
-		with simple.node_editor(self.guid, parent=self.parent.guid, link_callback=self.__link, delink_callback=self.__delink):
-			...
+		core.add_node_editor(self.guid, parent=self.parent.guid, link_callback=self.__link, delink_callback=self.__delink)
+		core.end()
 
 		kw['no_close'] = kw['no_collapse'] = kw['no_title_bar'] = kw['no_focus_on_appearing'] = True
 		kw['autosize'] = False
@@ -217,9 +217,9 @@ class NodeEditor(DPGObject):
 		for n in nodes:
 			sub = Group(self.__inspector)
 			Label(sub, default_value=n.label)
-			for guid, _ in n.inputs.items():
-				val = str(core.get_value(guid))
-				Label(sub, default_value=val)
+			for item in n.inputs:
+				val = core.get_value(item) or ' '
+				Field(sub, label='asd', default_value='123')
 
 			for _ in range(7):
 				SpacingVertical(self.__inspector)
@@ -229,8 +229,8 @@ class NodeEditor(DPGObject):
 		del Registry[nodeList]
 
 		kw = {'width': 60, 'height': 15, 'callback': self.__nodeAdd}
-		with simple.popup(self.guid, nodeList):
-			...
+		core.add_popup(self.guid, nodeList)
+		core.end()
 
 		for k in sorted(self.registryNodes):
 			Label(nodeList, default_value=k)
