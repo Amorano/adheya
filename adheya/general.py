@@ -129,37 +129,3 @@ class NumericFloatDrag(Numeric):
 		kw.pop('valueType', None)
 		kw.pop('inputType', None)
 		super().__init__(parent, ValueType.Float, InputType.Drag, **kw)
-
-class Text(DPGObject):
-	_CMD = core.add_input_text
-
-class ColorPicker(DPGObject):
-	_CMD = core.add_color_picker4
-
-# ================ TRIGGER ================ #
-
-class Button(DPGObject):
-	_CMD = core.add_button
-
-class ColorButton(DPGObject):
-	_CMD = core.add_color_button
-
-class ImageButton(DPGObject):
-	_CMD = core.add_image_button
-
-class Checkbox(DPGObject):
-	_CMD = core.add_checkbox
-
-# ================ SELECTION ================ #
-
-class RadioButtons(DPGObject):
-	_CMD = core.add_radio_button
-
-class ListBox(DPGObject):
-	_CMD = core.add_listbox
-
-class Combo(DPGObject):
-	_CMD = core.add_combo
-
-class Selectable(DPGObject):
-	_CMD = core.add_selectable

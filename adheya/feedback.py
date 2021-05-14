@@ -30,7 +30,7 @@ class Field(DPGObject):
 
 	@text.setter
 	def text(self, val):
-		self.__label = val
+		self.__label.value = val
 
 	@property
 	def value(self):
@@ -38,7 +38,7 @@ class Field(DPGObject):
 
 	@value.setter
 	def value(self, val):
-		self.__value = val
+		self.__value.value = val
 
 class ThreadUpdate(Thread):
 	"""Thread that updates a set of widgets from a Q."""
