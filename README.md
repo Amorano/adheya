@@ -1,5 +1,5 @@
 # Adheya: A thing placed in or depending upon another
-Simple lightweight Object Oriented Wrapping for [Dear PyGUI](https://github.com/hoffstadt/DearPyGui).
+Simple lightweight Object Oriented Wrapping for [Dear PyGUI](https://github.com/hoffstadt/DearPyGui) 0.6x ->0.8x (NOT 1.0->)
 
 The core example for this library is built around the DearPyGUI Node Graph Editor.
 
